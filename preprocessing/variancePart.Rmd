@@ -1,0 +1,122 @@
+---
+title: "Variance Partition"
+author: "Urwah Nawaz"
+date: "22/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+```
+
+# Libraries 
+
+```{r}
+library(variancePartition)
+library(magrittr)
+library(reshape2)
+```
+
+# Variance Partition analysis
+
+## Brainspan
+```{r}
+bspan.exp <- read.csv("datasets/FormattedData/FormattedData/BrainSpan/BrainSpan-exp.csv", row.names =2)[,-1]
+head(bspan.exp)[1:10]
+colnames(bspan.exp) <- gsub("X", "", colnames(bspan.exp))
+bspan.meta <- read.csv("datasets/FormattedData/FormattedData/BrainSpan/BrainSpan-metadata-subset.csv")
+colnames(bspan.meta)
+dim(bspan.meta)
+dim(bspan.exp)
+
+
+bspan.exp <- bspan.exp[apply(bspan.exp >= 1, 1, sum) >= 0.1*ncol(bspan.exp),]
+```
+
+```{r}
+colnames(bspan.meta)
+form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions)
+```
+
+```{r}
+varPar.bspan <- fitExtractVarPartModel(bspan.exp, form.bspan, bspan.meta)
+```
+
+
+```{r}
+vp <- sortCols(varPar.bspan)
+head(vp)
+vp["ENSG00000168036",] %>% as.data.frame() %>% melt() %>% ggplot() + geom_bar(aes(variable, value), stat = "identity") + ylab("% Variance Explained") + xlab("Metadata variable")
+plotPercentBars(vp[1:10,])
+plotVarPart(vp)
+dim(vp)
+
+write.csv(vp, "BrainSpan-varPart.csv")
+```
+
+
+```{r}
+bseq <- read.csv("datasets/FormattedData/FormattedData/BrainSeq/BrainSeq-exp.csv", row.names =2)[,-1]
+head(bseq)[1:10]
+bseq.exp <- bseq[apply(bseq >= 1, 1, sum) >= 0.1*ncol(bseq),]
+```
+
+
+```{r}
+bseq.md <- read.csv("datasets/FormattedData/FormattedData/BrainSeq/BrainSeq-metadata-subset.csv", row.names = 1)
+head(bseq.md)
+```
+
+```{r}
+form.bseq <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + RIN +  (1|Diagnosis) + mito_Rate + rRNA_rate + TotalNReads + MappingRate
+#+ Adult.Oligo + Adult.Microglia + Adult.Endothelial
+```
+
+
+```{r}
+varPar.bseq <- fitExtractVarPartModel(bseq.exp, form.bseq, bseq.md)
+```
+
+```{r}
+vp <- sortCols(varPar.bseq )
+plotVarPart(vp)
+
+pdf(file="varPar_CTNNB1.pdf")
+vp["ENSG00000168036",] %>% as.data.frame() %>% melt() %>% ggplot() + geom_bar(aes(variable, value, fill= variable), stat = "identity") + ylab("% Variance Explained") + xlab("Metadata variable") + theme(axis.text.x = element_text(angle=90), legend.position = "none")
+dev.off()
+
+write.csv(vp, "BrainSeq-varPart.csv")
+
+boxplot(bseq.md$mito_Rate ~ bseq.md$StructureAcronym)
+
+```
+
+```{r}
+hist(bseq.md$RIN)
+```
+
+```{r}
+colnames(bseq.md)
+form.bseq <- ~Dev.Replicating + Dev.Quiescent + Adult.OPC + Adult.Neurons + Adult.Astrocytes + Adult.Endothelial +  Adult.Oligo 
+varPar.bseq <- fitExtractVarPartModel(bseq.exp, form.bseq, bseq.md)
+vp <- sortCols(varPar.bseq )
+plotVarPart(vp)
+write.csv(vp, "BrainSeq-varPart-cellTypes.csv")
+```
+
+
+```{r}
+gtex.exp <- read.csv("datasets/FormattedData/FormattedData/Gtex/GTEx-exp.csv", row.names = 1)
+gtex.md <- read.csv("datasets/FormattedData/FormattedData/Gtex/GTEx-metadata-subset.csv")
+colnames(gtex.md)
+gtex.exp <- gtex.exp[apply(gtex.exp >= 1, 1, sum) >= 0.1*ncol(gtex.exp),]
+
+gtex.form <- ~ TotalNReads + rRNA_rate + (1|TypeofBatch) + (1|DateofBatch) + (1|BSS_Collection_side_code) + (1|AgeInterval) + (1|Sex) + (1|Regions) + IntergenicRate + RIN
+```
+
+```{r}
+varPar.gtex <- fitExtractVarPartModel(gtex.exp, gtex.form, gtex.md)
+vp <- sortCols(varPar.gtex)
+plotVarPart(vp)
+write.csv(vp, "GTEx-varPart.csv")
+```
