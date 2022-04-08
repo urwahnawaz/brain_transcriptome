@@ -1,9 +1,13 @@
 # BITHub
 
+This repository contains the code used for preprocessing transcriptomic files used for Brain Intergrative Transcriptome database (BITHub)
 
-## Data preprocessing and formatting 
 
 ### Datasets 
 
 
 ### Scripts 
+
+
+
+### Exploratory analysis
