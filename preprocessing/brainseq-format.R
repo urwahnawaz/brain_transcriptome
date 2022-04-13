@@ -111,38 +111,37 @@ final$Period <- ifelse(final$Age > 0, "Postnatal", "Prenatal")
 ### Age Intervals 
 final %<>% mutate(AgeInterval =
                             case_when(
-                              between(Age, 1, 1.5) ~ "0-5mos", 
-                              between(Age,2,5) ~ "19mos-5yrs", 
-                              between(Age,6,11) ~ "6-11yrs", 
-                              between(Age, 12,19) ~ "12-19yrs",
-                              between(Age, 20,39) ~ " 20-29yrs",
-                              between(Age, 30,39) ~ "30-39yrs",
-                              between(Age, 40, 49) ~ "40-49yrs", 
-                              between(Age, 50, 59) ~ "50-59yrs", 
-                              between(Age, 60, 69) ~ "60-69yrs", 
-                              between(Age, 70, 79) ~ "70-79yrs", 
-                              between(Age, 80, 89) ~ "80-89yrs", 
-                              between(Age,90,99) ~ "90-99yrs"))
+                              between(Age, 0, 1.5) ~ "0-5mos", 
+                              between(Age,2,5.99) ~ "19mos-5yrs", 
+                              between(Age,6,11.99) ~ "6-11yrs", 
+                              between(Age, 12,19.99) ~ "12-19yrs",
+                              between(Age, 20,29.99) ~ " 20-29yrs",
+                              between(Age, 30,39.99) ~ "30-39yrs",
+                              between(Age, 40, 49.99) ~ "40-49yrs", 
+                              between(Age, 50, 59.99) ~ "50-59yrs", 
+                              between(Age, 60, 69.99) ~ "60-69yrs", 
+                              between(Age, 70, 79.99) ~ "70-79yrs", 
+                              between(Age, 80, 89.99) ~ "80-89yrs", 
+                              between(Age,90,99.99) ~ "90-99yrs"))
 
 
-### Luckily base fuction findInterval works here 
-final$AgeInterval[findInterval(final$Age, c(-.7, -.47))] <- "4-7pcw"
-final$AgeInterval[findInterval(final$Age, c(-0.46, -0.41))] <- "8-9pcw"
-final$AgeInterval[findInterval(final$Age), c(-0.38, -0.33)] <- "10-12pcw"
+### Finding intervals manually 
+
+final$AgeInterval[final$Age == -0.5945210] <- "8-9pcw"
+final$AgeInterval[final$Age >= -0.52 & final$Age <= -0.47] <- "13-15pcw"
+final$AgeInterval[final$Age >= -0.47 & final$Age <= -0.42] <- "16-18pcw"
+final$AgeInterval[final$Age >= -0.41 & final$Age <= -0.33] <- "19-24pcw"
+final$AgeInterval[final$Age >= -0.27 & final$Age <= -0.090] <- "25-38pcw"
 
 
-table(final$Age)
+
+table(final$Age, final$AgeInterval)
 ### Regions 
 final$Regions[final$Region == "DLPFC"] <- "Cortex"
 final$Regions[final$Region == "HIPPO"] <- "Subcortex"
 final$Region <- gsub("HIPPO", "HIP", final$Region)
 
 
-### Name 
+### Save the file 
 
-
-bseq.bithub <- read.csv("Sanity_check/BITHub_formatted_data/FormattedData/BrainSeq/BrainSeq-metadata.csv")
-table(bseq.bithub$StructureAcronym, bseq.bithub$Regions)
-
-head(bseq.bithub,10)
-head(final,10)
+write.csv(final, "BrainSeq-metadata.csv")
