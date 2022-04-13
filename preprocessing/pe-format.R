@@ -104,17 +104,17 @@ no.BP %<>% mutate(AgeInterval =
                       #between(ageDeath, -0.46, -0.41), ~ "8-9pcw",  ### UNFORTUNATELY case_when does not work
                       #between(ageDeath, -0.39, -0.37), ~ "10-12pcw", ### with negative values 
                       between(ageDeath, 0, 1.5) ~ "0-5mos", 
-                      between(ageDeath,2,5) ~ "19mos-5yrs", 
-                      between(ageDeath,6,11) ~ "6-11yrs", 
-                      between(ageDeath, 12,19) ~ "12-19yrs",
-                      between(ageDeath, 20,39) ~ " 20-29yrs",
-                      between(ageDeath, 30,39) ~ "30-39yrs",
-                      between(ageDeath, 40, 49) ~ "40-49yrs", 
-                      between(ageDeath, 50, 59) ~ "50-59yrs", 
-                      between(ageDeath, 60, 69) ~ "60-69yrs", 
-                      between(ageDeath, 70, 79) ~ "70-79yrs", 
-                      between(ageDeath, 80, 89) ~ "80-89yrs", 
-                      between(ageDeath,90,99) ~ "90-99yrs"))
+                      between(ageDeath,2,5.99) ~ "19mos-5yrs", 
+                      between(ageDeath,6,11.99) ~ "6-11yrs", 
+                      between(ageDeath, 12,19.99) ~ "12-19yrs",
+                      between(ageDeath, 20,29.99) ~ " 20-29yrs",
+                      between(ageDeath, 30,39.99) ~ "30-39yrs",
+                      between(ageDeath, 40, 49.99) ~ "40-49yrs", 
+                      between(ageDeath, 50, 59.99) ~ "50-59yrs", 
+                      between(ageDeath, 60, 69.99) ~ "60-69yrs", 
+                      between(ageDeath, 70, 79.99) ~ "70-79yrs", 
+                      between(ageDeath, 80, 89.99) ~ "80-89yrs", 
+                      between(ageDeath,90,99.99) ~ "90-99yrs"))
 
 
 no.BP
@@ -122,10 +122,11 @@ no.BP
 ### Luckily base fuctions would be of better use here 
 
 no.BP$AgeInterval[no.BP$ageDeath == -0.5945210] <- "8-9pcw"
-no.BP$AgeInterval[no.BP$ageDeath >= -0.52 & no.BP$ageDeath <= -0.48] <- "13-15pcw"
+no.BP$AgeInterval[no.BP$ageDeath >= -0.52 & no.BP$ageDeath <= -0.47] <- "13-15pcw"
 no.BP$AgeInterval[no.BP$ageDeath >= -0.47 & no.BP$ageDeath <= -0.42] <- "16-18pcw"
 no.BP$AgeInterval[no.BP$ageDeath >= -0.41 & no.BP$ageDeath <= -0.33] <- "19-24pcw"
 no.BP$AgeInterval[no.BP$ageDeath >= -0.27 & no.BP$ageDeath <= -0.090] <- "25-38pcw"
+
 
 no.BP$AgeInterval[findInterval(no.BP$ageOnset, c(-0.52, -0.48))] <- "13-15pcw"
 no.BP$AgeInterval[findInterval(no.BP$ageOnset, c(-0.47, -0.42))] <- "16-18pcw"
@@ -133,11 +134,12 @@ no.BP$AgeInterval[findInterval(no.BP$ageOnset, c(-0.41, -0.33))] <- "19-24pcw"
 no.BP$AgeInterval[findInterval(no.BP$ageOnset, c(-0.2684930, -0.0958900))] <- "25-38pcw"
 no.BP$AgeInterval[no.BP$ageDeath == -0.0191780] <- "39-40pcw"
 
+table(no.BP$AgeInterval)
+table(no.BP$ageDeath, no.BP$AgeInterval)
 ### subset samples from the expression matrix
 pe.data <- PE.exp %>% 
   dplyr::select(contains(no.BP$individualID)) 
 
-BP.final
 BP.final <- no.BP %>% dplyr::filter(individualID %in% colnames(pe.data))
 BP.final <- BP.final[,-1]
 BP.final %<>%
@@ -177,5 +179,5 @@ colnames(BP.final)[1:19] <- c("SampleID",
 write.csv(BP.final, "PsychEncode-metadata.csv")
 write.csv(pe.data, "PsychEncode-exp.csv")
 
-#pe.bithub <- read.csv("Sanity_check/BITHub_formatted_data/FormattedData/Psychencode/PsychEncode-metadata.csv")
-#table(is.na(match(BP.final$SampleID, pe.bithub$SampleID))) ### sample names match
+pe.bithub <- read.csv("Sanity_check/BITHub_formatted_data/FormattedData/Psychencode/PsychEncode-metadata.csv")
+table(is.na(match(BP.final$SampleID, pe.bithub$SampleID))) ### sample names match
