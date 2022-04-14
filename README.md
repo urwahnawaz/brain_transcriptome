@@ -20,3 +20,16 @@ This repository contains the code used for preprocessing transcriptomic files us
 
 
 ### Exploratory analysis
+
+
+
+# Plots
+
+
+### Checklist for analysis 
+- [x] Rerun all code and generate with updated pcw values
+- [ ] Upload data to website 
+- [ ] Move data to RNA
+- [x] Update figures for BIThub
+- [ ] Rerun variance parition 
+- [ ] Write manual and help book for analysis - IN PROGRESS
