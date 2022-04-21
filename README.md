@@ -3,7 +3,10 @@
 This repository contains the code used for preprocessing transcriptomic files used for Brain Intergrative Transcriptome database (BITHub)
 
 
-### Datasets 
+## Datasets 
+
+### Bulk RNA-seq datasets 
+
 
 | Dataset | Raw Files | Formatted file |
 |---------|-----------|----------------|
@@ -12,7 +15,7 @@ This repository contains the code used for preprocessing transcriptomic files us
 | GTEx | GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt <br> GTEx_Analysis_v8_Annotations_SubjectPhenotypesDS.txt <br> GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz | GTEx-metadata.csv <br> GTEx-exp.csv |
 | PsychEncode | Job-154061626746631166818172835.csv <br> DER-24_Cell_fractions_Normalized.xlsx <br> DER-02_PEC_Gene_expression_matrix_TPM.txt | PsychEncode-metadata.csv <br> PsychEncode-exp.csv | 
 
-
+### Single-cell RNA-seq datasets
 
 
 #### Scripts 
