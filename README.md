@@ -22,9 +22,17 @@ This repository contains the code used for preprocessing transcriptomic files us
 ### Exploratory analysis
 
 
+### How to run to update website 
+
+#### Changing colours
+* git clone https://github.com/WalshKieran/Integration.git
+* git checkout datalake
+* See very top of Integration/resources/css/style2.js
+* Host it locally somehow (e.g. "web server for chrome" > choose folder > ../Integration i.e. root git folder)
+* Navigate to http://localhost:8887/site.html (edited) 
+
 
 # Plots
-
 
 ### Checklist for analysis 
 - [x] Rerun all code and generate with updated pcw values
