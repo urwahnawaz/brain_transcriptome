@@ -162,6 +162,7 @@ columns.metadata$AgeNumeric[grepl("yrs", columns.metadata$age, ignore.case = TRU
   as.numeric 
 
 
+
 ## Add diagnosis 
 ### According to the technical white paper, all BrainSpan data are controls 
 
@@ -196,14 +197,29 @@ columns.metadata %<>%
   as.data.frame() %>%
   dplyr::select("SampleID", everything())
 
+table(columns.metadata$AgeInterval, columns.metadata$AgeNumeric)
+
 ###Change column names - we edited colnames for BIThub for
 ### consistency across datasets in a seperate file
 ### now we will using these to change the colnames in the dataset before saving  
+
+
 
 bspan.names <- read.csv("Sanity_check/Raw_data/DownloadedData/BrainSpan-metadata-annot.csv")
 bspan.names
 colnames(columns.metadata)[c(1:10)] <-bspan.names$BITColumnName[c(1:10)]
 colnames(columns.metadata)[8] <- "StructureAcronym"
+
+columns.metadata
+### Add mRIN values to BrainSpan 
+bs.mRIN <- read.csv("../CP_gene_review/BrainSpan-mRIN.csv")[,-1]
+columns.metadata = cbind(columns.metadata, bs.mRIN)
+columns.metadata
+
+columns.metadata %<>% 
+  as.data.frame() %<>%
+  dplyr::select(-c("name_for_matrix", "mRIN_name", "sample.name","z.score", "P.value"))
+
 ###  Add SampleID as colname and geneID as rowname in the brainspan exp file 
 colnames(counts.matrix) <- columns.metadata$SampleID
 rownames(counts.matrix) <- rows.metadata$ensembl_gene_id
@@ -211,42 +227,43 @@ counts.matrix %<>% rownames_to_column("EnsemblID")
 
 ### save data
 
-#write.csv(columns.metadata, "../../CoC/Data/Bulk_data/FormattedData/BrainSpan/BrainSpan-metadata.csv")
-#write.csv(counts.matrix, "../../CoC/Data/Bulk_data/FormattedData/BrainSpan/BrainSpan-exp.csv")
+head(bspan.names)
+write.csv(columns.metadata, "BrainSpan-metadata.csv")
+write.csv(counts.matrix, "BrainSpan-exp.csv")
 
 
 ### Comparison with the current BITHub file 
 
-bspan.bithub <- read.csv("Sanity_check/BITHub_formatted_data/FormattedData/BrainSpan/BrainSpan-metadata.csv")
-head(bspan.bithub)
+#bspan.bithub <- read.csv("Sanity_check/BITHub_formatted_data/FormattedData/BrainSpan/BrainSpan-metadata.csv")
+#head(bspan.bithub)
 
-table(is.na(match(bspan.bithub$SampleID, columns.metadata$SampleID))) ### sampleIDs match order 
+#table(is.na(match(bspan.bithub$SampleID, columns.metadata$SampleID))) ### sampleIDs match order 
 
-table(columns.metadata$Period)
-columns.diff <- subset(columns.metadata, !(AgeNumeric %in% bspan.bithub$AgeNumeric))
+#table(columns.metadata$Period)
+#columns.diff <- subset(columns.metadata, !(AgeNumeric %in% bspan.bithub$AgeNumeric))
 
-bspan.diff <-  subset(bspan.bithub, !(AgeNumeric %in% columns.metadata$AgeNumeric))
-head(bspan.diff$AgeNumeric,10)
-head(columns.diff$AgeNumeric,10)
+#bspan.diff <-  subset(bspan.bithub, !(AgeNumeric %in% columns.metadata$AgeNumeric))
+#head(bspan.diff$AgeNumeric,10)
+#head(columns.diff$AgeNumeric,10)
 
 
 ### change 
 ### Previous method 
-columns.metadata$AgeNumeric[grepl("pcw", columns.metadata$Age, ignore.case = TRUE)] <- 
-  columns.metadata$Age[grepl("pcw",  columns.metadata$Age)] %>%  str_remove("-pcw") %>% 
-  as.numeric() %>% -(40 - .) %>% divide_by(52)
+#columns.metadata$AgeNumeric[grepl("pcw", columns.metadata$Age, ignore.case = TRUE)] <- 
+ # columns.metadata$Age[grepl("pcw",  columns.metadata$Age)] %>%  str_remove("-pcw") %>% 
+#  as.numeric() %>% -(40 - .) %>% divide_by(52)
 
 ### Gavins method 
 # step 2: convert PCW into a negative age
-which.pcw <- grep("-pcw", levels(columns.metadata$Age))
-pcw <- levels(columns.metadata$Age)[which.pcw]
+#which.pcw <- grep("-pcw", levels(columns.metadata$Age))
+#pcw <- levels(columns.metadata$Age)[which.pcw]
 
-pcw <- gsub("-pcw", "", pcw)
-pcw <- as.numeric(pcw)
-pcw <- -(40 - pcw) # how many weeks before birth
-pcw <- pcw / 52 # converts weeks into a fraction of the year
-unique(pcw)
-unique(columns.metadata$AgeNumeric)
-unique(bspan.bithub$AgeNumeric)
-levels(columns.metadata$AgeNumeric)[which.pcw] <- pcw
-columns.metadata$AgeNumeric
+#pcw <- gsub("-pcw", "", pcw)
+#pcw <- as.numeric(pcw)
+#pcw <- -(40 - pcw) # how many weeks before birth
+#pcw <- pcw / 52 # converts weeks into a fraction of the year
+#unique(pcw)
+#unique(columns.metadata$AgeNumeric)
+#unique(bspan.bithub$AgeNumeric)
+#levels(columns.metadata$AgeNumeric)[which.pcw] <- pcw
+#columns.metadata$AgeNumeric
