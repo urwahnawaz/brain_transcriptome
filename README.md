@@ -20,7 +20,11 @@ This repository contains the code used for preprocessing transcriptomic files us
 |--------|-----------|---------------- |
 | Velmesshav et al |||
 | Human Cell Atlas |||
-#### Scripts 
+
+
+## Preprocessing 
+
+All scripts associated with preprocessing files for BITHub are in the preprocessing folder
 
 
 
