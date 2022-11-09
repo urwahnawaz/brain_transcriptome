@@ -1,0 +1,75 @@
+################### Defining stages ####################
+stages = list()
+## prenatal 
+stages[["s1"]] = c() # 1 4-7 pcw Embryonic
+stages[["s2a"]] = c("8 pcw","9 pcw") # 2A 8-9 pcw Early prenatal
+stages[["s2b"]] = c("12 pcw") # 2B 10-12 pcw Early prenatal
+stages[["s3a"]] = c("13 pcw") # 3A 13-15 pcw Early mid-prenatal
+stages[["s3b"]] = c("16 pcw","17 pcw") # 3B 16-18 pcw Early mid-prenatal
+stages[["s4"]] = c("19 pcw","21 pcw","24 pcw") # 4 19-24 pcw Late mid-prenatal
+stages[["s5"]] = c("25 pcw","26 pcw","35 pcw","37 pcw") # 5 25-38 pcw Late prenatal
+stages[["s6"]] = c("4 mos") # 6 Birth-5 months Early infancy
+
+
+## Postnatal 
+stages[["s7"]] = c("10 mos", "1 yrs") # 7 6-18 months Late infancy
+stages[["s8"]] = c("2 yrs","3 yrs","4 yrs") # 8 19 months-5 yrs Early childhood
+stages[["s9"]] = c("8 yrs","11 yrs") # 9 6-11 yrs Late childhood
+stages[["s10"]] = c("13 yrs","15 yrs","18 yrs","19 yrs") # 10 12-19 yrs Adolescence
+stages[["s11"]] = c("21 yrs", "23 yrs")
+stages[["s12"]] = c("30 yrs", "36 yrs", "37 yrs")
+stages[["s13"]] = c("40 yrs")
+
+
+#stages[["s11"]] = c("21 yrs","23 yrs","30 yrs","36 yrs","37 yrs","40 yrs") # 11 20-60+ yrs Adulthood
+order.stages <- c("s1", "s2a", "s2b", "s3a", "s3b", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13")
+
+stages
+
+################### Defining age intervals ####################
+age_intervals = list()
+#age_intervals[["8-9pcw"]] = c() # 1 4-7 pcw Embryonic
+age_intervals[["8-9pcw"]] = c("8 pcw","9 pcw") # 2A 8-9 pcw Early prenatal
+age_intervals[["10-12pcw"]] = c("12 pcw") # 2B 10-12 pcw Early prenatal
+age_intervals[["13-15pcw"]] = c("13 pcw") # 3A 13-15 pcw Early mid-prenatal
+age_intervals[["16-18pcw"]] = c("16 pcw","17 pcw") # 3B 16-18 pcw Early mid-prenatal
+age_intervals[["19-24pcw"]] = c("19 pcw","21 pcw","24 pcw") # 4 19-24 pcw Late mid-prenatal
+age_intervals[["25-38pcw"]] = c("25 pcw","26 pcw","35 pcw","37 pcw") # 5 25-38 pcw Late prenatal
+age_intervals[["0-5mos"]] = c("4 mos") # 6 Birth-5 months Early infancy
+age_intervals[["6-18mos"]] = c("10 mos", "1 yrs") # 7 6-18 months Late infancy
+age_intervals[["19mos-5yrs"]] = c("2 yrs","3 yrs","4 yrs") # 8 19 months-5 yrs Early childhood
+age_intervals[["6-11yrs"]] = c("8 yrs","11 yrs") # 9 6-11 yrs Late childhood
+age_intervals[["12-19yrs"]] = c("13 yrs","15 yrs","18 yrs","19 yrs") # 10 12-19 yrs Adolescence
+age_intervals[["20-29yrs"]] = c("21 yrs", "23 yrs")
+age_intervals[["30-39yrs"]] = c("30 yrs", "36 yrs", "37 yrs")
+age_intervals[["40-49yrs"]] = c("40 yrs")
+
+
+order.intervals = c("8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",
+                     "19-24pcw", "25-38pcw", "0-5mos", "6-18mos", "19mos-5yrs", 
+                     "6-11yrs", "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs")
+
+
+
+################### Defining period ####################
+period = list()
+period[["Prenatal"]] = c("8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",
+                           "19-24pcw", "25-38pcw")
+
+
+period[["Postnatal"]] = c("0-5mos", "6-18mos", "19mos-5yrs", 
+                          "6-11yrs", "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs")
+
+order.period =c("Prenatal", "Postnatal")
+
+period
+################### Defining regions ####################
+regions = list()
+
+regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE", 
+                           "MD", "STR")
+regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
+                        "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
+                        "M1C", "M1C-S1C", "S1C", "A1C")
+
+regions[["Cerebellum"]] = c("CBC", "CB", "URL")
