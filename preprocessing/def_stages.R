@@ -1,7 +1,7 @@
 ################### Defining stages ####################
 stages = list()
 ## prenatal 
-stages[["s1"]] = c() # 1 4-7 pcw Embryonic
+stages[["s1"]] = c("4 pcw", "7 pcw") # 1 4-7 pcw Embryonic
 stages[["s2a"]] = c("8 pcw","9 pcw") # 2A 8-9 pcw Early prenatal
 stages[["s2b"]] = c("12 pcw") # 2B 10-12 pcw Early prenatal
 stages[["s3a"]] = c("13 pcw") # 3A 13-15 pcw Early mid-prenatal
@@ -43,6 +43,7 @@ age_intervals[["12-19yrs"]] = c("13 yrs","15 yrs","18 yrs","19 yrs") # 10 12-19 
 age_intervals[["20-29yrs"]] = c("21 yrs", "23 yrs")
 age_intervals[["30-39yrs"]] = c("30 yrs", "36 yrs", "37 yrs")
 age_intervals[["40-49yrs"]] = c("40 yrs")
+age_intervals[["50-49yrs"]]
 
 
 order.intervals = c("8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",

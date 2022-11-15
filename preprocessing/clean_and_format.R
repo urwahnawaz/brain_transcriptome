@@ -22,6 +22,7 @@ order.age <- c("8 pcw","9 pcw","12 pcw","13 pcw","16 pcw","17 pcw","19 pcw","21 
 
 #### Add stage column
 columns.metadata$stage <- as.factor(sapply(columns.metadata$age, function(x) {names(stages)[sapply(stages, function(stage) x %in% stage)]}))
+
 #### Sort factor levels of "stage"
 columns.metadata$stage <- factor(columns.metadata$stage, levels(columns.metadata$stage)[match(order.stages, levels(columns.metadata$stage))])
 table(columns.metadata$stage)
