@@ -114,7 +114,7 @@ process_bspan = function(bspan.path, outDIR){
   columns.metadata = read.csv(file.path(bspan.path, "columns_metadata.csv"), header = TRUE)
   counts.matrix = read.csv(file.path(bspan.path, "expression_matrix.csv"), header= FALSE, row.names= 1)
   rows.metadata = read.csv(file.path(bspan.path, "rows_metadata.csv"))
-  md.annot = read.csv("../../../BrainData/Bulk/FormattedData/BrainSpan/BrainSpan-metadata-annot.csv", header= TRUE)
+  md.annot = read.csv("../annotations/BrainSpan-metadata-annot.csv", header= TRUE)
   bspan.mRIN = readxl::read_xlsx("../annotations/ncomms8816-s2.xlsx", skip = 1) %>% 
     as.data.frame()
   
