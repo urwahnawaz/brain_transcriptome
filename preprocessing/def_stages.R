@@ -27,6 +27,14 @@ order.stages <- c("s1", "s2a", "s2b", "s3a", "s3b", "s4", "s5", "s6", "s7", "s8"
 stages
 
 ################### Defining age intervals ####################
+
+order.age <- c("8 pcw","9 pcw","12 pcw","13 pcw","16 pcw","17 pcw","19 pcw","21 pcw","24 pcw","25 pcw","26 pcw","35 pcw","37 pcw",
+               "4 mos","10 mos",
+               "1 yrs","2 yrs","3 yrs","4 yrs","8 yrs",
+               "11 yrs","13 yrs","15 yrs","18 yrs","19 yrs",
+               "21 yrs","23 yrs","30 yrs","36 yrs","37 yrs","40 yrs")
+
+
 age_intervals = list()
 #age_intervals[["8-9pcw"]] = c() # 1 4-7 pcw Embryonic
 age_intervals[["8-9pcw"]] = c("8 pcw","9 pcw") # 2A 8-9 pcw Early prenatal
@@ -59,18 +67,41 @@ period[["Prenatal"]] = c("8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",
 
 
 period[["Postnatal"]] = c("0-5mos", "6-18mos", "19mos-5yrs", 
-                          "6-11yrs", "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs")
+                          "6-11yrs", "12-19yrs", "20-29yrs", "30-39yrs", "40- 49yrs")
 
 order.period =c("Prenatal", "Postnatal")
 
-period
+
+
+############## Defining structures #####################
+structure_acronym = list()
+
+structure_acronym[["AMY"]] = c("Brain - Amygdala")
+structure_acronym[["CB"]] = c("Brain - Cerebellum")
+structure_acronym[["HYP"]] = c("Brain - Hypothalamus")
+structure_acronym[["SNA"]] = c("Brain - Substantia nigra")
+structure_acronym[["ACC"]] = c("Brain - Anterior cingulate cortex (BA24)")
+structure_acronym[["CTX"]] = c("Brain - Cortex")
+structure_acronym[["NAC"]] = c("Brain - Nucleus accumbens (basal ganglia)")
+structure_acronym[["CGE"]] = c("Brain - Caudate (basal ganglia)")
+structure_acronym[["DLPFC"]] = c("Brain - Frontal Cortex (BA9)")
+structure_acronym[["PUT"]] = c("Brain - Putamen (basal ganglia)")
+structure_acronym[["CBC"]] = c("Brain - Cerebellar Hemisphere")
+structure_acronym[["HIP"]] = c("Brain - Hippocampus")
+structure_acronym[["SCI"]] = c("Brain - Spinal cord (cervical c-1)")
+
+
 ################### Defining regions ####################
 regions = list()
 
 regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE", 
-                           "MD", "STR")
+                           "MD", "STR", "SNA", "PUT", "HYP", "NAC")
+
 regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
                         "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
-                        "M1C", "M1C-S1C", "S1C", "A1C")
+                        "M1C", "M1C-S1C", "S1C", "A1C", "ACC", "CTX", "DLPFC")
 
 regions[["Cerebellum"]] = c("CBC", "CB", "URL")
+
+regions[["Spinal Cord"]] = c("SC1")
+

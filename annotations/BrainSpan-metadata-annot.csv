@@ -1,0 +1,16 @@
+OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest
+SampleID,SampleID,Yes
+column_num,column_num,No
+donor_id,DonorID,No
+donor_name,DonorName,No
+age,Age,No
+gender,Sex,Yes
+structure_id,StructureID,No
+structure_acronym,StructureAcroymn,Yes
+structure_name,Structure,No
+stage,Stage,No
+NA,Period,Yes
+NA,AgeNumeric,Yes
+NA,AgeInterval,Yes
+NA,Diagnosis,Yes
+NA,Regions,Yes

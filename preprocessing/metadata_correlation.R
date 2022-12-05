@@ -19,7 +19,10 @@ M = cor(data.matrix(final), use = "complete.obs")
 pdf("../../../Brain_integrative_transcriptome/Results/Correlations/GTEx-metadata.pdf", height = 20, width = 25)
 corrplot(M)
 dev.off()
+<<<<<<< HEAD
+=======
 
 
 
 
+>>>>>>> main
