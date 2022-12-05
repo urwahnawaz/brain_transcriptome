@@ -1,32 +1,11 @@
-suppressPackageStartupMessages({
-  library(dplyr)
-  library(ggplot2)
-  library(reshape2)
-  library(tools)
-  library(magrittr)
-  library(tibble)
-  library(plyr)
-  library(pheatmap)
-  library(readxl)
-  library(gdata)
-  library(biomaRt)
-  library(data.table)
-  library(pander)
-  library(tidyr)
-  library(viridis)
-  library(RColorBrewer)
-  library(stringr)
-  library(SummarizedExperiment)
-  library(kableExtra)
-  library(scales)
-  library(splitstackshape)
-  library(viridis)})
+# Loading all libraries
+libs = c("dplyr", "ggplot2", "reshape2", "tools", "magrittr", "tibble", "readxl", 
+         "data.table", "scales", "tidyr", "reshape2", "stringr", "tidyverse", "readxl")
+libsLoaded <- lapply(libs,function(l){suppressWarnings(suppressMessages(library(l, character.only = TRUE)))})
 
-
-rm(list=ls())
 
 ## Weighting technical replicates
-path.data <- file.path("Sanity_check/Raw_data/DownloadedData/BrainSeq/")
+path.data <- file.path("../../../BrainData/Bulk/Brainseq/")
 ## Load
 load(file.path(path.data, "rse_gene_unfiltered.Rdata"))
 x <- rse_gene@colData
@@ -69,6 +48,8 @@ y[replicated] <- lapply(y[replicated], function(z) {
 w <- lapply(y, as.data.frame)
 w <- do.call("rbind", w)
 
+w
+
 #write.csv(w, "/Volumes/Data1/PROJECTS/Urwah/integration_datasets/FormattedData/BrainSeq/brainseq_metadata_new_weighted.csv")
 
 ## Adding composition data
@@ -96,10 +77,6 @@ final <- cbind(w, comp[m,])
 ### using the "Weighting Technical Replicates & Adding Composition.R" script. The same script has also been used to fix character variables
 ### As a result, we are formatting the file that contains the deconvolved values
 ### of note: the file produced by the previous script is known as brainseq_metadata_new_weighted_deconv.csv
-
-### Load file 
-#path.data <- file.path()
-#bseq.md <- read.csv(file.path(path.data, "brainseq_metadata_new_weighted_deconv.csv"))
 
 
 
@@ -141,7 +118,8 @@ final$Regions[final$Region == "DLPFC"] <- "Cortex"
 final$Regions[final$Region == "HIPPO"] <- "Subcortex"
 final$Region <- gsub("HIPPO", "HIP", final$Region)
 
+final
 
 ### Save the file 
 
-write.csv(final, "BrainSeq-metadata.csv")
+write.csv("../../../BrainData/Bulk/Brainseq/Formatted/", "BrainSeq-metadata.csv")
