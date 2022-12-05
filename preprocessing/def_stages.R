@@ -27,6 +27,14 @@ order.stages <- c("s1", "s2a", "s2b", "s3a", "s3b", "s4", "s5", "s6", "s7", "s8"
 stages
 
 ################### Defining age intervals ####################
+
+order.age <- c("8 pcw","9 pcw","12 pcw","13 pcw","16 pcw","17 pcw","19 pcw","21 pcw","24 pcw","25 pcw","26 pcw","35 pcw","37 pcw",
+               "4 mos","10 mos",
+               "1 yrs","2 yrs","3 yrs","4 yrs","8 yrs",
+               "11 yrs","13 yrs","15 yrs","18 yrs","19 yrs",
+               "21 yrs","23 yrs","30 yrs","36 yrs","37 yrs","40 yrs")
+
+
 age_intervals = list()
 #age_intervals[["8-9pcw"]] = c() # 1 4-7 pcw Embryonic
 age_intervals[["8-9pcw"]] = c("8 pcw","9 pcw") # 2A 8-9 pcw Early prenatal
