@@ -104,61 +104,56 @@ process_gtex = function(GTEx.path, outDIR){
 }
 
 
-gtex = process_gtex(GTEx.path = "../../Data/tmp_data/", outDIR = "../../Data/tmp_data/GTEx/")
-gtex.file = read.csv("../../Data/tmp_data/GTEx/GTEx-metadata.csv", header= TRUE)
-head(gtex.file)
-
-
-# BrainSpan 
 
 process_bspan = function(bspan.path, outDIR){
   
   source("def_stages.R")
+  
+  ## Load all files 
+  
   columns.metadata = read.csv(file.path(bspan.path, "columns_metadata.csv"), header = TRUE)
   counts.matrix = read.csv(file.path(bspan.path, "expression_matrix.csv"), header= FALSE, row.names= 1)
   rows.metadata = read.csv(file.path(bspan.path, "rows_metadata.csv"))
-  md.annot = read.csv()
-  bspan.mRIN = readxl::read_xlsx("../BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv/mRIN/ncomms8816-s2.xlsx", skip = 1) %>% 
+  md.annot = read.csv("../../../BrainData/Bulk/FormattedData/BrainSpan/BrainSpan-metadata-annot.csv", header= TRUE)
+  bspan.mRIN = readxl::read_xlsx("../annotations/ncomms8816-s2.xlsx", skip = 1) %>% 
     as.data.frame()
   
+  message("Changing BrainSpan column names to BITHub column names")
+  colnames(columns.metadata) = md.annot$BITColumnName[match(colnames(columns.metadata), md.annot$OriginalMetadataColumnName)]
   
-  columns.metadata$stage = add_feature(columns.metadata$age, stages)
-  columns.metadata$stage = factor(columns.metadata$stage, levels(columns.metadata$stage)[match(order.stages, levels(columns.metadata$stage))])
-  columns.metadata$Regions = add_feature(columns.metadata$structure_acronym, regions)
-  column.metadata$Age_Interval = add_features(columns.metadata$age, age_interval)
-  columns.metadata$Age_Interval = factor(columns.metadata$age_interval, levels(columns.metadata$age_interval)[
-    match(order.intervals, levels(columns.metadata$age_interval))])
+  message("Adding additional metadata information")
+  columns.metadata$Stage = add_feature(columns.metadata$Age, stages)
+  columns.metadata$Regions = add_feature(columns.metadata$StructureAcroymn, regions)
+  columns.metadata$AgeInterval = add_feature(columns.metadata$Age, age_intervals)
+  columns.metadata$Diagnosis <- "Control"
   
   
   ## Conversion to numeric ages 
-  message("Now converting to numeric ages")
-  columns.metadata$age <-  gsub(" ","_", columns.metadata$age)
-  columns.metadata$AgeNumeric[grepl("pcw", columns.metadata$age, ignore.case = TRUE)]<-
-    columns.metadata$age[grepl("pcw", columns.metadata$age)] %>%  str_remove("_pcw")%>% 
+  message("Now ages to numeric ages")
+  columns.metadata$Age <-  gsub(" ","_", columns.metadata$Age)
+  columns.metadata$AgeNumeric[grepl("pcw", columns.metadata$Age, ignore.case = TRUE)]<-
+    columns.metadata$age[grepl("pcw", columns.metadata$Age)] %>%  str_remove("_pcw")%>% 
     as.numeric() %>% `-` (40) %>% divide_by(52)
-  columns.metadata$AgeNumeric[grepl("mos", columns.metadata$age, ignore.case = TRUE)] <- 
-    columns.metadata$age[grepl("_mos", columns.metadata$age)] %>%  str_remove("_mos") %>% 
+  columns.metadata$AgeNumeric[grepl("mos", columns.metadata$Age, ignore.case = TRUE)] <- 
+    columns.metadata$age[grepl("_mos", columns.metadata$Age)] %>%  str_remove("_mos") %>% 
     as.numeric() %>% divide_by(12)
-  columns.metadata$AgeNumeric[grepl("yrs", columns.metadata$age, ignore.case = TRUE)] <- 
-    columns.metadata$age[grepl("_yrs", columns.metadata$age)] %>%  str_remove("_yrs") %>% 
+  columns.metadata$AgeNumeric[grepl("yrs", columns.metadata$Age, ignore.case = TRUE)] <- 
+    columns.metadata$age[grepl("_yrs", columns.metadata$Age)] %>%  str_remove("_yrs") %>% 
     as.numeric 
   
-  
-  columns.metadata$Diagnosis <- "Control"
-  
+  message("Creating SampleIDs using Donor ID, Age, Structure Acronym and Stage ")
   columns.metadata <- columns.metadata %>% 
-    dplyr::mutate(SampleID = paste(donor_id, age, structure_acronym, stage, sep = "_"))
+    dplyr::mutate(SampleID = paste(DonorID, Age, StructureAcromyn, Stage, sep = "_"))
   
   columns.metadata %<>% 
     as.data.frame() %>%
     dplyr::select("SampleID", everything())
   
-  
-  columns.metadata$age_for_mRIN <-  gsub("_","", columns.metadata$age)
-  columns.metadata$donor_name <-  gsub("\\.","_", columns.metadata$donor_name)
+  message("Adding mRIN information - based from Feng et al (2015)")
+  columns.metadata$age_for_mRIN <-  gsub("_","", columns.metadata$Age)
+  columns.metadata$DonorName <-  gsub("\\.","_", columns.metadata$DonorName)
   columns.metadata = columns.metadata %>% 
-    dplyr::mutate(mRIN_id = paste(donor_name, age_for_mRIN,gender, structure_acronym, sep = "//"))
-  head(columns.metadata$mRIN_id)
+    dplyr::mutate(mRIN_id = paste(DonorName, age_for_mRIN,Sex ,StructureAcroymn, sep = "//"))
   
   
   bspan.mRIN %<>% dplyr::select("sample name", "mRIN", "z-score", "P-value")
@@ -167,13 +162,28 @@ process_bspan = function(bspan.path, outDIR){
   columns.metadata = columns.metadata[!is.na(columns.metadata$SampleID),]
   
   columns.metadata = columns.metadata[order(as.numeric(as.character(columns.metadata$column_num))),]
-  columns.metadata %<>% dplyr::select(-mRIN_id)
+  columns.metadata %<>% dplyr::select(-mRIN_id, -age_for_mRIN)
+  
+  message("Preprocessing of metadata file complete")
+  message("Now processing expression file")
   
   colnames(counts.matrix) <- columns.metadata$SampleID
   rownames(counts.matrix) <- rows.metadata$ensembl_gene_id
   counts.matrix %<>% rownames_to_column("EnsemblID")
+  
+  
+  columns.metadata = apply(columns.metadata,2,as.character)
+  
+  ## Saving all files 
+  ## Find outDIR 
+  if(file.exists(outDIR)) {
+    message("Results directory exists")} else {
+      message("Creating results directory")
+      dir.create(outDIR, showWarnings = FALSE)}  
+  message(paste0("Saving results to ", outDIR))
+  write.csv(columns.metadata, paste0(outDIR, "/BrainSpan-metadata.csv"))
+  write.csv(counts.matrix, paste(outDIR, "/BrainSpan-exp.csv"))
 }
-
 
 ## progress bar 
 
