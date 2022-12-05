@@ -187,15 +187,15 @@ process_bspan = function(bspan.path, outDIR){
 
 ## progress bar 
 
-temp <- list.files(pattern="*\\.tsv$") 
-pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", # add
-                       total = length(temp), clear = FALSE, width= 60) # add
-test_data <- lapply(temp,function(x){
-  pb$tick()                                                            # add
-  read.csv(file = x,
-           sep ="\t",
-           fill = TRUE,
-           quote='', 
-           header = FALSE 
-  )[ ,c(287, 288, 289, 290, 291, 292, 293, 304, 370, 661, 662, 812, 813,994, 995, 1002)]
-})
+#temp <- list.files(pattern="*\\.tsv$") 
+#pb <- progress_bar$new(format = " progress [:bar] :percent eta: :eta", # add
+ #                      total = length(temp), clear = FALSE, width= 60) # add
+#test_data <- lapply(temp,function(x){
+#  pb$tick()                                                            # add
+#  read.csv(file = x,
+#           sep ="\t",
+#           fill = TRUE,
+#           quote='', 
+#           header = FALSE 
+#  )[ ,c(287, 288, 289, 290, 291, 292, 293, 304, 370, 661, 662, 812, 813,994, 995, 1002)]
+#})

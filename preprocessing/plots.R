@@ -5,7 +5,6 @@ libsLoaded <- lapply(libs,function(l){suppressWarnings(suppressMessages(library(
 
 
 
-
 summarise_stats = function(x, dataset)
   {
   age = table(x$AgeInterval) %>% melt()
