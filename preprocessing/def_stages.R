@@ -58,18 +58,41 @@ period[["Prenatal"]] = c("8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",
 
 
 period[["Postnatal"]] = c("0-5mos", "6-18mos", "19mos-5yrs", 
-                          "6-11yrs", "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs")
+                          "6-11yrs", "12-19yrs", "20-29yrs", "30-39yrs", "40- 49yrs")
 
 order.period =c("Prenatal", "Postnatal")
 
-period
+
+
+############## Defining structures #####################
+structure_acronym = list()
+
+structure_acronym[["AMY"]] = c("Brain - Amygdala")
+structure_acronym[["CB"]] = c("Brain - Cerebellum")
+structure_acronym[["HYP"]] = c("Brain - Hypothalamus")
+structure_acronym[["SNA"]] = c("Brain - Substantia nigra")
+structure_acronym[["ACC"]] = c("Brain - Anterior cingulate cortex (BA24)")
+structure_acronym[["CTX"]] = c("Brain - Cortex")
+structure_acronym[["NAC"]] = c("Brain - Nucleus accumbens (basal ganglia)")
+structure_acronym[["CGE"]] = c("Brain - Caudate (basal ganglia)")
+structure_acronym[["DLPFC"]] = c("Brain - Frontal Cortex (BA9)")
+structure_acronym[["PUT"]] = c("Brain - Putamen (basal ganglia)")
+structure_acronym[["CBC"]] = c("Brain - Cerebellar Hemisphere")
+structure_acronym[["HIP"]] = c("Brain - Hippocampus")
+structure_acronym[["SCI"]] = c("Brain - Spinal cord (cervical c-1)")
+
+
 ################### Defining regions ####################
 regions = list()
 
 regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE", 
-                           "MD", "STR")
+                           "MD", "STR", "SNA", "PUT", "HYP", "NAC")
+
 regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
                         "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
-                        "M1C", "M1C-S1C", "S1C", "A1C")
+                        "M1C", "M1C-S1C", "S1C", "A1C", "ACC", "CTX", "DLPFC")
 
 regions[["Cerebellum"]] = c("CBC", "CB", "URL")
+
+regions[["Spinal Cord"]] = c("SC1")
+
