@@ -6,7 +6,7 @@ donor_name,DonorName,No
 age,Age,No
 gender,Sex,Yes
 structure_id,StructureID,No
-structure_acronym,StructureAcroymn,Yes
+structure_acronym,StructureAcronym,Yes
 structure_name,Structure,No
 stage,Stage,No
 NA,Period,Yes
