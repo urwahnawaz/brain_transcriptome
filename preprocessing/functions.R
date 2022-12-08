@@ -64,6 +64,7 @@ clean_and_format = function(dir ,dataset, outdir){
     colnames(columns.metadata) = annot$BITColumnName[match(colnames(columns.metadata), annot$OriginalMetadataColumnName)]
     
     message("Adding additional metadata information")
+    
     md = columns.metadata %>% 
       mutate(Stage = add_feature(.$Age, stages), 
              Regions = add_feature(.$StructureAcronym, regions), 
@@ -170,7 +171,9 @@ clean_and_format = function(dir ,dataset, outdir){
     
   } else if (dataset == "PsychEncode"){
     
-    exp = list.files(dir, full.names = TRUE, pattern = "\\Gene_expression_matrix_TPM.txt")
+    
+    exp = list.files(dir, full.names = TRUE, pattern = "\\Gene_expression_matrix_TPM.txt") %>% 
+      read.table(., header=TRUE, row.names = 1, check.names = FALSE)
     md = list.files(dir, full.names = TRUE, pattern = "Job*") %>% read.csv(., header=TRUE)
     comp = list.files(dir, full.names = TRUE, pattern = "\\Cell_fractions*") %>% read_excel() %>%
       as.data.frame() %>% 
@@ -192,6 +195,7 @@ clean_and_format = function(dir ,dataset, outdir){
     md$AgeNumeric = gsub("90+", "91", md$AgeNumeric)
     md$AgeNumeric =gsub("\\+", "", md$AgeNumeric)
     
+    
     md$AgeNumeric <- as.numeric(as.character(md$AgeNumeric))
     
     md %<>%
@@ -203,13 +207,31 @@ clean_and_format = function(dir ,dataset, outdir){
       mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
              StructureAcronym = c("PFC")) %>%  
       mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"))  %>%
+      mutate(age_interval = as.character(cut(AgeNumeric, seq(-11, 100, by = 10)))) %>%
+      mutate(AgeInterval = sapply(age_interval, function(i) {
+        paste0(as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
+               "-",as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")   })) %>% 
+      dplyr::select(-age_interval) %>% 
       as.data.frame()
     
+    md$AgeInterval[md$AgeNumeric >= -0.76 & md$AgeNumeric <= -0.70] = "1-3pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.701 & md$AgeNumeric<= -0.62] = "4-7pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.621 & md$AgeNumeric<= -0.58] = "8-9pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.57 & md$AgeNumeric<= -0.53] = "10-12pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.52 & md$AgeNumeric < -0.47] = "13-15pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.47 & md$AgeNumeric<= -0.42] = "16-18pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.41 & md$AgeNumeric<= -0.30] = "19-24pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.29 & md$AgeNumeric<= -0.038] = "25-38pcw"
+    md$AgeInterval[md$AgeNumeric>= -0.020 & md$AgeNumeric< 0] = "39-40pcw"
+    md$AgeInterval[md$AgeNumeric>= 0 & md$AgeNumeric<= 0.49] = "0-5mos"
+    md$AgeInterval[md$AgeNumeric>= 0.50 & md$AgeNumeric<= 1.58] = "6-18mos"
+    md$AgeInterval[md$AgeNumeric>= 1.5833 & md$AgeNumeric<= 5.99] = "19mos-5yrs"
+    md$AgeInterval[md$AgeNumeric>= 6 & md$AgeNumeric<= 11.99] = "6-11yrs" 
     
+    
+    exp %<>% rownames_to_column("EnsemblID")
     
   }
-  
-  
   
   
   else {
@@ -228,4 +250,5 @@ clean_and_format = function(dir ,dataset, outdir){
   
   
 }
+
 
