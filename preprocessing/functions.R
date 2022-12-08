@@ -146,7 +146,7 @@ clean_and_format = function(dir ,dataset){
     df$AgeInterval[df$Age >= 0 & df$Age <= 0.49] <- "0-5mos"
     df$AgeInterval[df$Age >= 0.50 & df$Age <= 1.58] <- "6-18mos"
     df$AgeInterval[df$Age >= 1.5833 & df$Age <= 5.99] <- "19mos-5yrs"
-    df$AgeInterval[df$Age >= 6 & df$Age <= 11.99] <- "6-11yrs" 
+    df$AgeInterval[df$Age >= 6 & df$Age <= 11.99] <- "6-11yrs"  
     
   }
     
