@@ -1,24 +1,16 @@
+
 ## Cleaning and formatting GTEx metadata 
-
-## Loading libraries 
-libs = c("dplyr", "ggplot2", "reshape2", "tools", "magrittr", "tibble", "readxl", 
-         "data.table", "scales", "tidyr", "reshape2", "stringr", "tidyverse", "readxl", "corrplot", "purrr")
-libsLoaded = lapply(libs,function(l){suppressWarnings(suppressMessages(library(l, character.only = TRUE)))})
+source(c("functions.R", "def_stages.R"))
 
 
 
 
-add_feature = function(feature_column, features){
-  as.vector(sapply(feature_column, function(x){
-    names(features)[sapply(features, function(f) x %in% f)]})) 
-}
 
 
 # Function to preprocess raw bulk data  
 process_gtex = function(GTEx.path, outDIR){
   
-  source("def_stages.R") 
-  
+
   ## List all files 
   attributes = list.files(GTEx.path, full.names = TRUE, pattern = "\\SampleAttributesDS.txt") # Sample attributes contains sample level information
   phenotype = list.files(GTEx.path, full.names = TRUE, pattern = "\\SubjectPhenotypesDS.txt") # Phenotype level information related to each donor 
@@ -184,6 +176,101 @@ process_bspan = function(bspan.path, outDIR){
   write.csv(columns.metadata, paste0(outDIR, "/BrainSpan-metadata.csv"))
   write.csv(counts.matrix, paste(outDIR, "/BrainSpan-exp.csv"))
 }
+
+
+process_bseq = function(path, outdir){
+  source("def_stages.R")
+  load(file.path(path, "rse_gene_unfiltered.Rdata"))
+  load(file.path(path,"methprop_pd.Rdata"))
+  x = rse_gene@colData 
+  x <- as.data.frame(x)
+  x <- as.data.frame(t(x))
+  replicated <- colnames(x)[grep(",", x["SAMPLE_ID",])]
+  y <- as.list(x)
+  y[replicated] <- lapply(y[replicated], function(z) {
+    # which variables to merge
+    to.weight <- which(sapply(z, length) > 1 & sapply(z, class) %in% c("numeric", "integer"))
+    
+    # weighting of the merge
+    weighting <- z$numReads # total reads
+    weighting <- weighting / sum(weighting) # rather than a straight average, it's based on the number of reads
+    
+    # apply weighting
+    z[to.weight] <- lapply(z[to.weight], function(zz) {
+      if (length(weighting) == length(zz)) {
+        sum(weighting * zz)
+      } else {
+        NaN
+      }
+      
+    })
+    
+    # quickly fix character variables
+    char <- which(sapply(z, length) > 1 & sapply(z, class) == "character")
+    z[char] <- lapply(z[char], function(zz) {
+      paste(zz, collapse = " & ")
+    })
+    
+    return(z)
+  })
+  
+  w <- lapply(y, as.data.frame)
+  w <- do.call("rbind", w)
+  
+  comp <- as.data.frame(pd)
+  comp <- comp[,57:64]
+  m <- match(rownames(comp), rownames(w)) # they are
+  final <- cbind(w, comp[m,])
+  
+  # Adding features 
+  final$Period <- ifelse(final$Age > 0, "Postnatal", "Prenatal")
+  final$Region <- gsub("HIPPO", "HIP", final$Region)
+  final$Regions = add_feature(final$Region, regions)
+  
+  
+  # Age Intervals 
+  final %<>% mutate(AgeInterval =
+                      case_when(
+                        between(Age, 0, 1.5) ~ "0-5mos", 
+                        between(Age,2,5.99) ~ "19mos-5yrs", 
+                        between(Age,6,11.99) ~ "6-11yrs", 
+                        between(Age, 12,19.99) ~ "12-19yrs",
+                        between(Age, 20,29.99) ~ " 20-29yrs",
+                        between(Age, 30,39.99) ~ "30-39yrs",
+                        between(Age, 40, 49.99) ~ "40-49yrs", 
+                        between(Age, 50, 59.99) ~ "50-59yrs", 
+                        between(Age, 60, 69.99) ~ "60-69yrs", 
+                        between(Age, 70, 79.99) ~ "70-79yrs", 
+                        between(Age, 80, 89.99) ~ "80-89yrs", 
+                        between(Age,90,99.99) ~ "90-99yrs"))
+  
+  
+  ### Finding intervals manually 
+  final$AgeInterval[final$Age <= 0 & final$Age >= 1.5] = "0-5mos"
+  final$AgeInterval[final$Age <= 2 & final$Age >= 5.99] = "19mos-5yrs"
+  final$AgeInterval[final$Age == -0.5945210] <- "8-9pcw"
+  final$AgeInterval[final$Age >= -0.52 & final$Age <= -0.47] <- "13-15pcw"
+  final$AgeInterval[final$Age >= -0.47 & final$Age <= -0.42] <- "16-18pcw"
+  final$AgeInterval[final$Age >= -0.41 & final$Age <= -0.33] <- "19-24pcw"
+  final$AgeInterval[final$Age >= -0.27 & final$Age <= -0.090] <- "25-38pcw"
+  
+  ## Exp file 
+  
+  exp = rse_gene@assays@.xData$data$rpkm
+  rownames(exp) = sub("\\.[0-9]*$", "", rownames(exp)) 
+  
+  if(file.exists(outdir)) {
+    message("Results directory exists")} else {
+      message("Creating results directory")
+      dir.create(outdir, showWarnings = FALSE)}  
+  message(paste0("Saving results to ", outdir))
+  write.csv(final, paste0(outdir, "/BrainSeq-metadata.csv"))
+  write.csv(exp, paste0(outdir, "/BrainSeq-exp.csv"))
+  
+  
+}
+
+
 
 ## progress bar 
 

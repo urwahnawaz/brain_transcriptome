@@ -5,7 +5,7 @@ suppressPackageStartupMessages({
   library(reshape2)
   library(tools)
   library(magrittr)
-  library(tibble)
+  library(tibble) 
   library(plyr)
   library(pheatmap)
   library(readxl)
@@ -119,7 +119,7 @@ no.BP %<>% mutate(AgeInterval =
 
 no.BP
 
-### Luckily base fuctions would be of better use here 
+### Luckily base functions would be of better use here 
 
 no.BP$AgeInterval[no.BP$ageDeath == -0.5945210] <- "8-9pcw"
 no.BP$AgeInterval[no.BP$ageDeath >= -0.52 & no.BP$ageDeath <= -0.47] <- "13-15pcw"

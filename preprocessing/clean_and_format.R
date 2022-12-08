@@ -10,9 +10,9 @@ source("pre-processing.R")
 
 bspandir = file.path("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv")
 
-outdir = file.path("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted")
+outdir = file.path("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/")
 
-process_bspan(bspandir, outdir)
+process_bspan(bspandir, outdir) # This function will save the files in the outdir
 
 
 # Preprocessing of GTEx files 
@@ -24,6 +24,6 @@ process_bspan(bspandir, outdir)
 
 gtex_dir = file.path("/home/neuro/Documents/BrainData/Bulk/GTEx")
 
-outDIR = file.path("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted")
+outdir = file.path("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/")
 
-process_gtex(gtex_dir, outDIR)
+process_gtex(gtex_dir, outdir) # this function will save the files in the outdir 
