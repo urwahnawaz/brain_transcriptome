@@ -11,7 +11,7 @@ add_feature = function(feature_column, features){
 }
 
 
-clean_and_format = function(dir ,dataset){
+clean_and_format = function(dir ,dataset, outdir){
   
   message(paste0("Now formatting the ", dataset, " dataset"))
   annot= read.csv(paste0("../annotations/", dataset,"-metadata-annot.csv"))
@@ -26,17 +26,17 @@ clean_and_format = function(dir ,dataset){
     md = read_tsv(attributes, col_types = c('.default' = 'c')) %>% 
       filter(SMTS == 'Brain') %>% 
       mutate(SUBJID = sapply(str_split(SAMPID, pattern = "-"), function(x) paste(x[1:2], collapse = '-'))) %>%
-      left_join(read_tsv(phenotype, col_types = c('.default' = 'c'))) %>%
-      mutate(StructureAcronym = add_feature(.$SMTSD, structure_acronym)) %>% 
-      mutate(Regions = add_feature(.$StructureAcronym, regions)) %>%  
-      mutate(AGE = paste(.$AGE, "yrs", sep = "") ) %>% as.data.frame() 
-    colnames(gtex.md) = annot$BITColumnName[match(colnames(gtex.md), annot$OriginalMetadataColumnName)]
+      left_join(read_tsv(phenotype, col_types = c('.default' = 'c')))  %>% as.data.frame()
+    colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalMetadataColumnName)]
     
-    md = md %>% 
-      mutate(Diagnosis = "Control") %>% 
-      mutate(SEX = ifelse(SEX == 1, "M", "F")) %>% 
-      mutate(Period = "Postnatal") %>% as.data.frame()
-     
+    md = md %>% mutate(StructureAcronym = add_feature(.$Structure, structure_acronym)) %>% 
+      mutate(Regions = add_feature(.$StructureAcronym, regions), 
+             Age = paste(.$Age, "yrs", sep = ""), 
+             Diagnosis = "Control", 
+             Sex = ifelse(Sex == 1, "M", "F"), 
+             Period = "Postnatal") %>% as.data.frame()
+    
+    exp = read.delim(exp, skip = 2)
     colnames(exp) <- gsub("\\.", "-", colnames(exp)) # Changing expression file names to match metadata SampleIDs
     exp %<>% column_to_rownames("Name")
     
@@ -53,9 +53,9 @@ clean_and_format = function(dir ,dataset){
   } else if (dataset == "BrainSpan"){
     # Loading all files 
     
-    columns.metadata = read.csv(file.path(bspan.path, "columns_metadata.csv"), header = TRUE)
-    counts.matrix = read.csv(file.path(bspan.path, "expression_matrix.csv"), header= FALSE, row.names= 1)
-    rows.metadata = read.csv(file.path(bspan.path, "rows_metadata.csv"))
+    columns.metadata = read.csv(file.path(dir, "columns_metadata.csv"), header = TRUE)
+    exp = read.csv(file.path(dir, "expression_matrix.csv"), header= FALSE, row.names= 1)
+    rows.metadata = read.csv(file.path(dir, "rows_metadata.csv"))
     
     bspan.mRIN = readxl::read_xlsx("../annotations/ncomms8816-s2.xlsx", skip = 1) %>% 
       as.data.frame() %>% dplyr::select("sample name", "mRIN", "z-score", "P-value")
@@ -68,23 +68,24 @@ clean_and_format = function(dir ,dataset){
       mutate(Stage = add_feature(.$Age, stages), 
              Regions = add_feature(.$StructureAcronym, regions), 
              AgeIntervals = add_feature(.$Age, age_intervals), 
-             Diagnosis = "Control") %>% 
-      mutate(SampleID = paste(DonorID, Age, StructureAcromyn, Stage, sep = "_"), 
+             Diagnosis = "Control", 
+             Age = gsub(" ","_", .$Age)) %>%  
+      mutate(SampleID = paste(DonorID, Age, StructureAcronym, Stage, sep = "_"), 
              age_for_mRIN = gsub("_", "", .$Age), 
              DonorName = gsub("\\.","_", .$DonorName)) %>% 
-      mutate('sample name' = paste(DonorName, age_for_mRIN,Sex ,StructureAcroymn, sep = "//")) %>% 
+      mutate('sample name' = paste(DonorName, age_for_mRIN,Sex ,StructureAcronym, sep = "//")) %>% 
       left_join(bspan.mRIN) %>% as.data.frame() %>% 
       dplyr::select("SampleID", everything())
     
     ## Adding Age Numeric 
     md$AgeNumeric[grepl("pcw", md$Age, ignore.case = TRUE)]<-
-      md$age[grepl("pcw", md$Age)] %>%  str_remove("_pcw")%>% 
+      md$Age[grepl("pcw", md$Age)] %>%  str_remove("_pcw")%>% 
       as.numeric() %>% `-` (40) %>% divide_by(52)
     md$AgeNumeric[grepl("mos", md$Age, ignore.case = TRUE)] <- 
-      md$age[grepl("_mos", md$Age)] %>%  str_remove("_mos") %>% 
+      md$Age[grepl("_mos", md$Age)] %>%  str_remove("_mos") %>% 
       as.numeric() %>% divide_by(12)
     md$AgeNumeric[grepl("yrs", md$Age, ignore.case = TRUE)] <- 
-      md$age[grepl("_yrs", md$Age)] %>%  str_remove("_yrs") %>% 
+      md$Age[grepl("_yrs", md$Age)] %>%  str_remove("_yrs") %>% 
       as.numeric 
     
     colnames(exp) <- md$SampleID
@@ -92,13 +93,13 @@ clean_and_format = function(dir ,dataset){
     exp %<>% rownames_to_column("EnsemblID")
     
     
-    md = apply(md,2,as.character)
-      
-      
+    
+    
+    
     
   } else if (dataset == "BrainSeq"){
-    load(file.path(path, "rse_gene_unfiltered.Rdata"))
-    load(file.path(path,"methprop_pd.Rdata"))
+    load(file.path(dir, "rse_gene_unfiltered.Rdata"), envir = .GlobalEnv)
+    load(file.path(dir,"methprop_pd.Rdata"), envir = .GlobalEnv)
     x = rse_gene@colData 
     x <- as.data.frame(x)
     x <- as.data.frame(t(x))
@@ -141,12 +142,12 @@ clean_and_format = function(dir ,dataset){
     
     # Adding features 
     md = md %>% mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"), 
-                             Region = gsub("HIPPO", "HIP", .$Region)) %>%
+                       Region = gsub("HIPPO", "HIP", .$Region)) %>%
       mutate(Regions = add_feature(.$Region, regions)) %>% 
       mutate(age_interval = as.character(cut(Age, seq(-1, 100, by = 10)))) %>%
       mutate(AgeInterval = sapply(age_interval, function(i) {
         paste0( as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
-          "-", as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")})) %>% 
+                "-", as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")})) %>% 
       dplyr::select(-age_interval)
     
     
@@ -167,8 +168,47 @@ clean_and_format = function(dir ,dataset){
     exp = rse_gene@assays@.xData$data$rpkm
     rownames(exp) <- sub("\\.[0-9]*$", "", rownames(exp))
     
-  }
+  } else if (dataset == "PsychEncode"){
     
+    exp = list.files(dir, full.names = TRUE, pattern = "\\Gene_expression_matrix_TPM.txt")
+    md = list.files(dir, full.names = TRUE, pattern = "Job*") %>% read.csv(., header=TRUE)
+    comp = list.files(dir, full.names = TRUE, pattern = "\\Cell_fractions*") %>% read_excel() %>%
+      as.data.frame() %>% 
+      column_to_rownames("CellType")
+    
+    colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalColumnName)]
+    # Fix existing columns 
+    comp = comp[,-1] 
+    comp = as.data.frame(t(comp))
+    m <- match(md$SampleID, rownames(comp))
+    md <- cbind(md, comp[m,])
+    
+    
+    # PCW to age numeric 
+    md$AgeNumeric[grepl("PCW", md$AgeNumeric, ignore.case = TRUE)] = md$AgeNumeric[grepl("PCW", md$AgeNumeric)] %>%  
+      str_remove("PCW")%>% 
+      as.numeric() %>% `-` (40) %>% divide_by(52)
+    
+    md$AgeNumeric = gsub("90+", "91", md$AgeNumeric)
+    md$AgeNumeric =gsub("\\+", "", md$AgeNumeric)
+    
+    md$AgeNumeric <- as.numeric(as.character(md$AgeNumeric))
+    
+    md %<>%
+      filter(Diagnosis == "Affective Disorder" |
+               Diagnosis == "Autism Spectrum Disorder" | 
+               Diagnosis == "Bipolar Disorder" |
+               Diagnosis == "Control" |
+               Diagnosis == "Schizophrenia") %>% 
+      mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
+             StructureAcronym = c("PFC")) %>%  
+      mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"))  %>%
+      as.data.frame()
+    
+    
+    
+  }
+  
   
   
   
