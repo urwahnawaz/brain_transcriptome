@@ -68,7 +68,7 @@ clean_and_format = function(dir ,dataset, outdir){
     md = columns.metadata %>% 
       mutate(Stage = add_feature(.$Age, stages), 
              Regions = add_feature(.$StructureAcronym, regions), 
-             AgeIntervals = add_feature(.$Age, age_intervals), 
+             AgeInterval = add_feature(.$Age, age_intervals), 
              Diagnosis = "Control", 
              Age = gsub(" ","_", .$Age)) %>%  
       mutate(SampleID = paste(DonorID, Age, StructureAcronym, Stage, sep = "_"), 
@@ -140,12 +140,12 @@ clean_and_format = function(dir ,dataset, outdir){
     comp <- comp[,57:64]
     m <- match(rownames(comp), rownames(w)) # they are
     md<- cbind(w, comp[m,])
-    
+    colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalMetadataColumnName)]
     # Adding features 
     md = md %>% mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"), 
-                       Region = gsub("HIPPO", "HIP", .$Region)) %>%
-      mutate(Regions = add_feature(.$Region, regions)) %>% 
-      mutate(age_interval = as.character(cut(Age, seq(-1, 100, by = 10)))) %>%
+                       StructureAcronym = gsub("HIPPO", "HIP", .$StructureAcronym)) %>%
+      mutate(Regions = add_feature(.$StructureAcronym, regions)) %>% 
+      mutate(age_interval = as.character(cut(AgeNumeric, seq(-1, 100, by = 10)))) %>%
       mutate(AgeInterval = sapply(age_interval, function(i) {
         paste0( as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
                 "-", as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")})) %>% 

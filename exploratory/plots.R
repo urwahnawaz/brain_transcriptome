@@ -3,7 +3,7 @@ libs = c("dplyr", "ggplot2", "reshape2", "tools", "magrittr", "tibble", "readxl"
          "data.table", "scales", "tidyr", "reshape2", "stringr", "tidyverse", "readxl", "corrplot", "viridis")
 libsLoaded <- lapply(libs,function(l){suppressWarnings(suppressMessages(library(l, character.only = TRUE)))})
 
-
+#### Functions ####
 
 summarise_stats = function(x, dataset)
   {
@@ -23,11 +23,12 @@ summarise_stats = function(x, dataset)
 }
 
 
-directory = file.path("/Users/urwah/Documents/PhD/Brain_transcriptome/Data/FormattedData/Metadata")
-pattern = "/Users/urwah/Documents/PhD/Brain_transcriptome/Data/FormattedData/Metadata/"
+directory = file.path("/home/neuro/Documents/BrainData/Bulk")
+
+pattern = "/home/neuro/Documents/BrainData/Bulk"
 
 for (f in directory){
-  md = list.files(f, full.names = TRUE, pattern = "\\-metadata.csv$")
+  md = list.files(f, full.names = TRUE, pattern = "\\-metadata.csv$", recursive = TRUE)
   
   for (j in md){
     ct_file = read.csv(j, header= TRUE)
@@ -40,13 +41,14 @@ for (f in directory){
   
 }
 
+ct_file
 
+bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv/Formatted/BrainSpan-metadata.csv")
+bseq.md = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata.csv")
+gtex.md = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata.csv")
+pe.md = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-metadata.csv", header=TRUE)
 
-bspan.md = read.csv("../../Data/FormattedData/BrainSpan/BrainSpan-metadata.csv")
-bseq.md = read.csv("../../Data/FormattedData/BrainSeq/BrainSeq-metadata.csv")
-gtex.md = read.csv("../../Data/FormattedData/Gtex/GTEx-metadata.csv")
-pe.md = read.csv("../../Data/FormattedData/PsychEncode/PsychEncode-metadata.csv", header=TRUE)
-
+head(bspan.md)
 
 age = table(pe.md$AgeInterval) %>% melt()
 age$Type = c("Sample")
@@ -58,14 +60,14 @@ colnames(age) = c("AgeInterval", "n", "Type", "dataset")
 age
 
 
-age = summarise_stats(gtex.md, "GTEx")
-age
+age_gtex = summarise_stats(gtex.md, "GTEx")
+
 age.bspan = summarise_stats(bspan.md, "BrainSpan")
 age.bseq = summarise_stats(bseq.md, "BrainSeq")
 
-all_2 = rbind(age, age.bspan, age.bseq)
+all = rbind(age, age.bspan, age.bseq, age_gtex)
 
-all_2 = rbind(all_2, age)
+
 
 unique(all$AgeInterval)
 all_2$AgeInterval = factor(all_2$AgeInterval, levels = c("4-7pcw", "8-9pcw",
