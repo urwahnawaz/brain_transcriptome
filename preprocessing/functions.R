@@ -31,7 +31,7 @@ clean_and_format = function(dir ,dataset, outdir){
     
     md = md %>% mutate(StructureAcronym = add_feature(.$Structure, structure_acronym)) %>% 
       mutate(Regions = add_feature(.$StructureAcronym, regions), 
-             Age = paste(.$Age, "yrs", sep = ""), 
+             AgeInterval = paste(.$Age, "yrs", sep = ""), 
              Diagnosis = "Control", 
              Sex = ifelse(Sex == 1, "M", "F"), 
              Period = "Postnatal") %>% as.data.frame()
