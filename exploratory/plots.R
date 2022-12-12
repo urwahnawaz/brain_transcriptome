@@ -44,11 +44,15 @@ for (f in directory){
 ct_file
 
 bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv/Formatted/BrainSpan-metadata.csv")
-bseq.md = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata.csv")
+bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata.csv")
 gtex.md = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata.csv")
 pe.md = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-metadata.csv", header=TRUE)
 
-head(bspan.md)
+
+
+
+table(md$AgeInterval)
+
 
 age = table(pe.md$AgeInterval) %>% melt()
 age$Type = c("Sample")
@@ -57,9 +61,15 @@ individual$Type = c("Individual")
 age = rbind(age, individual)
 age$dataset = c("PsychEncoode")
 colnames(age) = c("AgeInterval", "n", "Type", "dataset")
-age
 
 
+
+uncat =bseq.md %>% 
+  dplyr::filter(AgeInterval == "0-9yrs") %>% 
+  dplyr::select(DonorID, AgeNumeric, AgeInterval)
+
+
+table(bseq.md$AgeInterval)
 age_gtex = summarise_stats(gtex.md, "GTEx")
 
 age.bspan = summarise_stats(bspan.md, "BrainSpan")
@@ -67,7 +77,7 @@ age.bseq = summarise_stats(bseq.md, "BrainSeq")
 
 all = rbind(age, age.bspan, age.bseq, age_gtex)
 
-
+all
 
 unique(all$AgeInterval)
 all_2$AgeInterval = factor(all_2$AgeInterval, levels = c("4-7pcw", "8-9pcw",
@@ -158,3 +168,6 @@ bseq_varPart["ENSG00000101040",] %>% melt() %>%
 
 
 bseq_varPart["ENSG00000116273",]
+
+
+

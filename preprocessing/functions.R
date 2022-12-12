@@ -152,19 +152,19 @@ clean_and_format = function(dir ,dataset, outdir){
       dplyr::select(-age_interval)
     
     
-    md$AgeInterval[md$Age >= -0.76 & md$Age <= -0.70] = "1-3pcw"
-    md$AgeInterval[md$Age >= -0.701 & md$Age <= -0.62] = "4-7pcw"
-    md$AgeInterval[md$Age >= -0.621 & md$Age <= -0.58] = "8-9pcw"
-    md$AgeInterval[md$Age >= -0.57 & md$Age <= -0.53] = "10-12pcw"
-    md$AgeInterval[md$Age >= -0.52 & md$Age <= -0.48] = "13-15pcw"
-    md$AgeInterval[md$Age >= -0.47 & md$Age <= -0.42] = "16-18pcw"
-    md$AgeInterval[md$Age >= -0.41 & md$Age <= -0.30] = "19-24pcw"
-    md$AgeInterval[md$Age >= -0.29 & md$Age <= -0.038] = "25-38pcw"
-    md$AgeInterval[md$Age >= -0.019 & md$Age < 0] = "39-40pcw"
-    md$AgeInterval[md$Age >= 0 & md$Age <= 0.49] <- "0-5mos"
-    md$AgeInterval[md$Age >= 0.50 & md$Age <= 1.58] <- "6-18mos"
-    md$AgeInterval[md$Age >= 1.5833 & md$Age <= 5.99] <- "19mos-5yrs"
-    md$AgeInterval[md$Age >= 6 & md$Age <= 11.99] <- "6-11yrs"  
+    md$AgeInterval[md$AgeNumeric >= -0.76 & md$AgeNumeric <= -0.70] = "1-3pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.701 & md$AgeNumeric <= -0.62] = "4-7pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.621 & md$AgeNumeric <= -0.58] = "8-9pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.57 & md$AgeNumeric <= -0.53] = "10-12pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.52 & md$AgeNumeric <= -0.48] = "13-15pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.47 & md$AgeNumeric <= -0.42] = "16-18pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.41 & md$AgeNumeric <= -0.30] = "19-24pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.29 & md$AgeNumeric <= -0.038] = "25-38pcw"
+    md$AgeInterval[md$AgeNumeric >= -0.019 & md$AgeNumeric < 0] = "39-40pcw"
+    md$AgeInterval[md$AgeNumeric >= 0 & md$AgeNumeric <= 0.49] <- "0-5mos"
+    md$AgeInterval[md$AgeNumeric >= 0.50 & md$AgeNumeric <= 1.58] <- "6-18mos"
+    md$AgeInterval[md$AgeNumeric >= 1.5833 & md$AgeNumeric <= 5.99] <- "19mos-5yrs"
+    md$AgeInterval[md$AgeNumeric >= 6 & md$AgeNumeric <= 11.99] <- "6-11yrs"  
     
     exp = rse_gene@assays@.xData$data$rpkm
     rownames(exp) <- sub("\\.[0-9]*$", "", rownames(exp))
