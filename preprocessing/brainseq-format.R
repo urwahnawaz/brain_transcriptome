@@ -123,3 +123,59 @@ final
 ### Save the file 
 
 write.csv("../../../BrainData/Bulk/Brainseq/Formatted/", "BrainSeq-metadata.csv")
+
+
+### changes to on doing age intervals 
+
+### load brainseq
+dir = file.path("/home/neuro/Documents/BrainData/Bulk/Brainseq")
+load(file.path(dir, "rse_gene_unfiltered.Rdata"), envir = .GlobalEnv)
+
+
+
+num_to_pcw = function(age){
+  round(age * 52 + 40)
+}
+
+num_to_mos = function(age){
+  round(age * 12 )
+}
+
+num_to_mos( 1.623589 )
+
+?round
+num_to_pcw(-0.402739726)
+
+w %>% 
+  dplyr::filter(Age < 0) %>% 
+  mutate(ageNN = paste0(num_to_pcw(Age)))
+
+paste0(c(30:39), " yrs")
+
+table(w$age_pcw)
+w$age_pcw[w$Age < 0] = paste0(num_to_pcw(w$Age[w$Age < 0]), " pcw") %>% as.data.frame()
+trial =w %>% mutate(age_interval = as.character(cut(Age, seq(-1, 100, by = 10)))) %>%
+  mutate(AgeInterval = sapply(age_interval, function(i) {
+    paste0( as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
+            "-", as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")})) %>% 
+  mutate(Age_Interval = add_feature(.$age_pcw, age_intervals))
+
+table(trial$AgeInterval)
+
+md = md %>% mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"), 
+                   Region = gsub("HIPPO", "HIP", .$Region)) %>%
+  mutate(Regions = add_feature(.$Region, regions)) %>% 
+  mutate(age_interval = as.character(cut(Age, seq(-1, 100, by = 10)))) %>%
+  mutate(AgeInterval = sapply(age_interval, function(i) {
+    paste0( as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
+            "-", as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")})) %>% 
+  dplyr::select(-age_interval)
+
+mutate(Regions = add_feature(.$StructureAcronym, regions), 
+
+
+
+
+?grepl
+
+outdir = file.path("/home/neuro/Documents/Brain_integrative_transcriptome/Results/Formatted")
