@@ -37,21 +37,26 @@ order.age <- c("8 pcw","9 pcw","12 pcw","13 pcw","16 pcw","17 pcw","19 pcw","21 
 
 age_intervals = list()
 #age_intervals[["8-9pcw"]] = c() # 1 4-7 pcw Embryonic
-age_intervals[["8-9pcw"]] = c("8 pcw","9 pcw") # 2A 8-9 pcw Early prenatal
-age_intervals[["10-12pcw"]] = c("12 pcw") # 2B 10-12 pcw Early prenatal
-age_intervals[["13-15pcw"]] = c("13 pcw") # 3A 13-15 pcw Early mid-prenatal
-age_intervals[["16-18pcw"]] = c("16 pcw","17 pcw") # 3B 16-18 pcw Early mid-prenatal
-age_intervals[["19-24pcw"]] = c("19 pcw","21 pcw","24 pcw") # 4 19-24 pcw Late mid-prenatal
-age_intervals[["25-38pcw"]] = c("25 pcw","26 pcw","35 pcw","37 pcw") # 5 25-38 pcw Late prenatal
-age_intervals[["0-5mos"]] = c("4 mos") # 6 Birth-5 months Early infancy
-age_intervals[["6-18mos"]] = c("10 mos", "1 yrs") # 7 6-18 months Late infancy
-age_intervals[["19mos-5yrs"]] = c("2 yrs","3 yrs","4 yrs") # 8 19 months-5 yrs Early childhood
-age_intervals[["6-11yrs"]] = c("8 yrs","11 yrs") # 9 6-11 yrs Late childhood
-age_intervals[["12-19yrs"]] = c("13 yrs","15 yrs","18 yrs","19 yrs") # 10 12-19 yrs Adolescence
-age_intervals[["20-29yrs"]] = c("21 yrs", "23 yrs")
-age_intervals[["30-39yrs"]] = c("30 yrs", "36 yrs", "37 yrs")
-age_intervals[["40-49yrs"]] = c("40 yrs")
-age_intervals[["50-49yrs"]]
+age_intervals[["4-7pcw"]] = paste0(c(4:7), " pcw")
+age_intervals[["8-9pcw"]] = paste0(c(8:9), " pcw") # 2A 8-9 pcw Early prenatal
+age_intervals[["10-12pcw"]] = paste0(c(10:12), " pcw") # 2B 10-12 pcw Early prenatal
+age_intervals[["13-15pcw"]] = paste0(c(13:15), " pcw") # 3A 13-15 pcw Early mid-prenatal
+age_intervals[["16-18pcw"]] = paste0(c(16:18), " pcw") # 3B 16-18 pcw Early mid-prenatal
+age_intervals[["19-24pcw"]] = paste0(c(19:24), " pcw") # 4 19-24 pcw Late mid-prenatal
+age_intervals[["25-38pcw"]] = paste0(c(25:38), " pcw") # 5 25-38 pcw Late prenatal
+age_intervals[["0-5mos"]] = paste0(c(0:5), " mos") # 6 Birth-5 months Early infancy
+age_intervals[["6-18mos"]] = c(paste0(c(6:18)," mos"), "1 yrs") # 7 6-18 months Late infancy
+age_intervals[["19mos-5yrs"]] = c(paste0(c(19:20)," mos"), paste0(c(2:5), " yrs"))  # 8 19 months-5 yrs Early childhood
+age_intervals[["6-11yrs"]] = paste0(c(6:11), " yrs") # 9 6-11 yrs Late childhood
+age_intervals[["12-19yrs"]] = paste0(c(12:19), " yrs") # 10 12-19 yrs Adolescence
+age_intervals[["20-29yrs"]] = paste0(c(20:29), " yrs") 
+age_intervals[["30-39yrs"]] = paste0(c(30:39), " yrs")
+age_intervals[["40-49yrs"]] = paste0(c(40:49), " yrs")
+age_intervals[["50-59yrs"]] = paste0(c(50:59), " yrs")
+age_intervals[["60-69yrs"]] = paste0(c(60:69), " yrs")
+age_intervals[["70-79yrs"]] = paste0(c(70:79), " yrs")
+age_intervals[["80-89yrs"]] = paste0(c(80:89), " yrs")
+age_intervals[["90-99yrs"]] = paste0(c(90:99), " yrs")
 
 
 order.intervals = c("8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",
