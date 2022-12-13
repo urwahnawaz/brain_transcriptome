@@ -200,27 +200,11 @@ clean_and_format = function(dir ,dataset, outdir){
                Diagnosis == "Schizophrenia") %>% 
       mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
              StructureAcronym = c("PFC")) %>%  
-      mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"))  %>%
-      mutate(age_interval = as.character(cut(AgeNumeric, seq(-11, 100, by = 10)))) %>%
-      mutate(AgeInterval = sapply(age_interval, function(i) {
-        paste0(as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
-               "-",as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")   })) %>% 
-      dplyr::select(-age_interval) %>% 
+      mutate(Period = ifelse(.$AgeNumeric > 0, "Postnatal", "Prenatal"))  %>%
+      mutate(Age_rounded = sapply(.$AgeNumeric, num_to_round)) %>% 
+      mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
+      dplyr::select(-Age_rounded) %>%
       as.data.frame()
-    
-    md$AgeInterval[md$AgeNumeric >= -0.76 & md$AgeNumeric <= -0.70] = "1-3pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.701 & md$AgeNumeric<= -0.62] = "4-7pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.621 & md$AgeNumeric<= -0.58] = "8-9pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.57 & md$AgeNumeric<= -0.53] = "10-12pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.52 & md$AgeNumeric < -0.47] = "13-15pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.47 & md$AgeNumeric<= -0.42] = "16-18pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.41 & md$AgeNumeric<= -0.30] = "19-24pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.29 & md$AgeNumeric<= -0.038] = "25-38pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.020 & md$AgeNumeric< 0] = "39-40pcw"
-    md$AgeInterval[md$AgeNumeric>= 0 & md$AgeNumeric<= 0.49] = "0-5mos"
-    md$AgeInterval[md$AgeNumeric>= 0.50 & md$AgeNumeric<= 1.58] = "6-18mos"
-    md$AgeInterval[md$AgeNumeric>= 1.5833 & md$AgeNumeric<= 5.99] = "19mos-5yrs"
-    md$AgeInterval[md$AgeNumeric>= 6 & md$AgeNumeric<= 11.99] = "6-11yrs" 
     
     
     exp %<>% rownames_to_column("EnsemblID")
