@@ -11,7 +11,9 @@ add_feature = function(feature_column, features){
 }
 
 num_to_round = function(age){
-  if (age > 2) {
+  if (is.na(age)) {
+    NaN
+  } else if (age > 2) {
     paste0(round(age), " yrs")
   } else if (age < 0) {
     paste0(round(age * 52 + 40), " pcw")
@@ -153,12 +155,20 @@ clean_and_format = function(dir ,dataset, outdir){
     md<- cbind(w, comp[m,])
     colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalMetadataColumnName)]
     # Adding features 
-    md = md %>% mutate(Period = ifelse(.$AgeNumeric > 0, "Postnatal", "Prenatal"), 
-                       StructureAcronym = gsub("HIPPO", "HIP", .$StructureAcronym)) %>%
-      mutate(Regions = add_feature(.$StructureAcronym, regions)) %>% 
-      mutate(Age_rounded = sapply(.$AgeNumeric, num_to_round)) %>% 
-      mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
-      dplyr::select(-Age_rounded)
+    md %<>%
+    filter(Diagnosis == "Affective Disorder" |
+           Diagnosis == "Autism Spectrum Disorder" | 
+           Diagnosis == "Bipolar Disorder" |
+           Diagnosis == "Control" |
+           Diagnosis == "Schizophrenia") %>% 
+            mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
+         StructureAcronym = c("PFC")) %>%  
+  mutate(Period = ifelse(.$AgeNumeric > 0, "Postnatal", "Prenatal"))  %>%
+  mutate(Age_rounded = as.character(sapply(na.omit(.$AgeNumeric), num_to_round))) %>% as.data.frame() %>%
+  mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
+  mutate(Regions = c("Cortex")) %>% 
+  dplyr::select(-Age_rounded) %>%
+  as.data.frame()
     
     exp = rse_gene@assays@.xData$data$rpkm
     rownames(exp) <- sub("\\.[0-9]*$", "", rownames(exp))
@@ -193,18 +203,19 @@ clean_and_format = function(dir ,dataset, outdir){
     md$AgeNumeric <- as.numeric(as.character(md$AgeNumeric))
     
     md %<>%
-      filter(Diagnosis == "Affective Disorder" |
-               Diagnosis == "Autism Spectrum Disorder" | 
-               Diagnosis == "Bipolar Disorder" |
-               Diagnosis == "Control" |
-               Diagnosis == "Schizophrenia") %>% 
-      mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
-             StructureAcronym = c("PFC")) %>%  
-      mutate(Period = ifelse(.$AgeNumeric > 0, "Postnatal", "Prenatal"))  %>%
-      mutate(Age_rounded = sapply(.$AgeNumeric, num_to_round)) %>% 
-      mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
-      dplyr::select(-Age_rounded) %>%
-      as.data.frame()
+  filter(Diagnosis == "Affective Disorder" |
+           Diagnosis == "Autism Spectrum Disorder" | 
+           Diagnosis == "Bipolar Disorder" |
+           Diagnosis == "Control" |
+           Diagnosis == "Schizophrenia") %>% 
+  mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
+         StructureAcronym = c("PFC")) %>%  
+  mutate(Period = ifelse(.$AgeNumeric > 0, "Postnatal", "Prenatal"))  %>%
+  mutate(Age_rounded = as.character(sapply(.$AgeNumeric, num_to_round))) %>% as.data.frame() %>%
+  mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
+  mutate(Regions = c("Cortex")) %>% 
+  dplyr::select(-Age_rounded) %>%
+  as.data.frame()
     
     
     exp %<>% rownames_to_column("EnsemblID")
