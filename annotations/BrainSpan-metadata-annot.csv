@@ -1,16 +1,17 @@
-OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest
-SampleID,SampleID,Yes
-column_num,column_num,No
-donor_id,DonorID,No
-donor_name,DonorName,No
-age,Age,No
-gender,Sex,Yes
-structure_id,StructureID,No
-structure_acronym,StructureAcronym,Yes
-structure_name,Structure,No
-stage,Stage,No
-NA,Period,Yes
-NA,AgeNumeric,Yes
-NA,AgeInterval,Yes
-NA,Diagnosis,Yes
-NA,Regions,Yes
+OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest,Type
+SampleID,SampleID,Yes,Sample characteristics
+column_num,column_num,No,Sample characteristics
+donor_id,DonorID,No,Phenotype
+donor_name,DonorName,No,Phenotype
+age,Age,No,Phenotype
+gender,Sex,Yes,Phenotype
+structure_id,StructureID,No,Sample characteristics
+structure_acronym,StructureAcronym,Yes,Sample characteristics
+structure_name,Structure,No,Sample characteristics
+stage,Stage,No,Phenotype
+NA,Period,Yes,Phenotype
+NA,AgeNumeric,Yes,Phenotype
+NA,AgeInterval,Yes,Phenotype
+NA,Diagnosis,Yes,Phenotype
+NA,Regions,Yes,Sample characteristics
+NA,mRIN,Yes,Sequencing metrics

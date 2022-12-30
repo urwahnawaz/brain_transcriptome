@@ -1,48 +1,48 @@
-OriginalColumnName ,BITColumnName,Include (Yes/No) - Interest
-individualID,SampleID,Yes
-diagnosis,Diagnosis,Yes
-sex,Sex,Yes
-ethnicity,Ethnicity,Yes
-ageDeath,AgeNumeric,Yes
-Adult.Ex1,Adult.Ex1,Yes
-Adult.Ex2,Adult.Ex2,Yes
-Adult.Ex3,Adult.Ex3,Yes
-Adult.Ex4,Adult.Ex4,Yes
-Adult.Ex5,Adult.Ex5,Yes
-Adult.Ex6,Adult.Ex6,Yes
-Adult.Ex7,Adult.Ex7,Yes
-Adult.Ex8,Adult.Ex8,Yes
-Adult.In1,Adult.In1,Yes
-Adult.In2,Adult.In2,Yes
-Adult.In3,Adult.In3,Yes
-Adult.In4,Adult.In4,Yes
-Adult.In5,Adult.In5,Yes
-Adult.In6,Adult.In6,Yes
-Adult.In7,Adult.In7,Yes
-Adult.In8,Adult.In8,Yes
-Adult.Astrocytes,Adult.Astrocytes,Yes
-Adult.Endothelial,Adult.Endothelial,Yes
-Dev.Quiescent,Dev.Quiescent,Yes
-Dev.Replicating,Dev.Replicating,Yes
-Adult.Microglia,Adult.Microglia,Yes
-Adult.OtherNeuron,Adult.OtherNeuron,Yes
-Adult.OPC,Adult.OPC,Yes
-Adult.Oligo,Adult.Oligo,Yes
-structure_acronym,StructureAcronym,Yes
-ROW_ID,Row_ID,No
-ROW_VERSION,Row_version,No
-contributingStudy,ContributingStudy,No
-individualIDSource,individualIDSource,No
-ageOnset,ageOnset,Yes
-causeDeath,causeDeath,Yes
-brainWeight,brainWeight,Yes
-height,height,Yes
-weight,weight,Yes
-ageBiopsy,ageBiopsy,Yes
-smellTestScore,smellTestScore,Yes
-smoker,smoker,Yes
-notes,Notes,No
-Capstone_4,Capstone_4,Yes
-NA,Period,Yes
-NA,AgeInterval,Yes
-NA,Regions,Yes
+OriginalColumnName ,BITColumnName,Include (Yes/No) - Interest,Type
+individualID,SampleID,Yes,Sample charactertics
+diagnosis,Diagnosis,Yes,Phenotype
+sex,Sex,Yes,Phenotype
+ethnicity,Ethnicity,Yes,Phenotype
+ageDeath,AgeNumeric,Yes,Phenotype
+Adult.Ex1,Adult.Ex1,Yes,Sample charactertics
+Adult.Ex2,Adult.Ex2,Yes,Sample charactertics
+Adult.Ex3,Adult.Ex3,Yes,Sample charactertics
+Adult.Ex4,Adult.Ex4,Yes,Sample charactertics
+Adult.Ex5,Adult.Ex5,Yes,Sample charactertics
+Adult.Ex6,Adult.Ex6,Yes,Sample charactertics
+Adult.Ex7,Adult.Ex7,Yes,Sample charactertics
+Adult.Ex8,Adult.Ex8,Yes,Sample charactertics
+Adult.In1,Adult.In1,Yes,Sample charactertics
+Adult.In2,Adult.In2,Yes,Sample charactertics
+Adult.In3,Adult.In3,Yes,Sample charactertics
+Adult.In4,Adult.In4,Yes,Sample charactertics
+Adult.In5,Adult.In5,Yes,Sample charactertics
+Adult.In6,Adult.In6,Yes,Sample charactertics
+Adult.In7,Adult.In7,Yes,Sample charactertics
+Adult.In8,Adult.In8,Yes,Sample charactertics
+Adult.Astrocytes,Adult.Astrocytes,Yes,Sample charactertics
+Adult.Endothelial,Adult.Endothelial,Yes,Sample charactertics
+Dev.Quiescent,Dev.Quiescent,Yes,Sample charactertics
+Dev.Replicating,Dev.Replicating,Yes,Sample charactertics
+Adult.Microglia,Adult.Microglia,Yes,Sample charactertics
+Adult.OtherNeuron,Adult.OtherNeuron,Yes,Sample charactertics
+Adult.OPC,Adult.OPC,Yes,Sample charactertics
+Adult.Oligo,Adult.Oligo,Yes,Sample charactertics
+structure_acronym,StructureAcronym,Yes,Sample charactertics
+ROW_ID,Row_ID,No,Sample charactertics
+ROW_VERSION,Row_version,No,Sample charactertics
+contributingStudy,ContributingStudy,No,Sample charactertics
+individualIDSource,individualIDSource,No,Phenotype
+ageOnset,ageOnset,Yes,Phenotype
+causeDeath,causeDeath,Yes,Phenotype
+brainWeight,brainWeight,Yes,Phenotype
+height,height,Yes,Phenotype
+weight,weight,Yes,Phenotype
+ageBiopsy,ageBiopsy,Yes,Sample charactertics
+smellTestScore,smellTestScore,Yes,Sample charactertics
+smoker,smoker,Yes,Sample charactertics
+notes,Notes,No,Sample charactertics
+Capstone_4,Capstone_4,Yes,Sample charactertics
+NA,Period,Yes,Phenotype
+NA,AgeInterval,Yes,Phenotype
+NA,Regions,Yes,Sample charactertics

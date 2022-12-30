@@ -1,67 +1,67 @@
-OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest
-X,SampleID,Yes
-SAMPLE_ID,SAMPLE_ID,No
-FQCbasicStats,FQCbasicStats,No
-perBaseQual,perBaseQual,No
-perTileQual,perTileQual,No
-perSeqQual,perSeqQual,No
-perBaseContent,perBaseContent,No
-GCcontent,GCcontent,No
-Ncontent,Ncontent,No
-SeqLengthDist,SeqLengthDist,No
-SeqDuplication,SeqDuplication,No
-OverrepSeqs,OverrepSeqs,No
-AdapterContent,AdapterContent,No
-KmerContent,KmerContent,No
-percentGC_R1,percentGC_R1,No
-phred100_R1,phred100_R1,No
-phredGT30_R1,phredGT30_R1,No
-phredGT35_R1,phredGT35_R1,No
-Adapter88_R1,Adapter88_R1,No
-percentGC_R2,percentGC_R2,No
-phred100_R2,phred100_R2,No
-phredGT30_R2,phredGT30_R2,No
-phredGT35_R2,phredGT35_R2,No
-Adapter88_R2,Adapter88_R2,No
-ERCCsumLogErr,ERCCsumLogErr,No
-bamFile,bamFile,No
-trimmed,trimmed,Yes
-numReads,TotalNReads,Yes
-numMapped,numMapped,Yes
-numUnmapped,numUnmapped,Yes
-overallMapRate,MappingRate,Yes
-concordMapRate,concordMapRate,Yes
-totalMapped,totalMapped,Yes
-mitoMapped,mitoMapped,Yes
-mitoRate,mito_Rate,Yes
-totalAssignedGene,totalAssignedGene,Yes
-rRNA_rate,rRNA_rate,Yes
-RNum,RNum,No
-BrNum,DonorID,No
-Region,StructureAcronym,Yes
-RIN,RIN,Yes
-Age,AgeNumeric,Yes
-Sex,Sex,Yes
-Race,Ethnicity,Yes
-Dx,Diagnosis,Yes
-snpPC1,snpPC1,No
-snpPC2,snpPC2,No
-snpPC3,snpPC3,No
-snpPC4,snpPC4,No
-snpPC5,snpPC5,No
-snpPC6,snpPC6,No
-snpPC7,snpPC7,No
-snpPC8,snpPC8,No
-snpPC9,snpPC9,No
-snpPC10,snpPC10,No
-Fetal_replicating,Dev.Replicating,Yes
-Fetal_quiescent,Dev.Quiescent,Yes
-OPC,Adult.OPC,Yes
-Neurons,Adult.Neurons,Yes
-Astrocytes,Adult.Astrocytes,Yes
-Oligodendrocytes,Adult.Oligo,Yes
-Microglia,Adult.Microglia,Yes
-Endothelial,Adult.Endothelial,Yes
-NA,AgeInterval,Yes
-NA,Period,Yes
-NA,Regions,Yes
+OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest,Type
+X,SampleID,Yes,Sample charactertics
+SAMPLE_ID,SAMPLE_ID,No,Sample charactertics
+FQCbasicStats,FQCbasicStats,No,Sequencing metrics
+perBaseQual,perBaseQual,No,Sequencing metrics
+perTileQual,perTileQual,No,Sequencing metrics
+perSeqQual,perSeqQual,No,Sequencing metrics
+perBaseContent,perBaseContent,No,Sequencing metrics
+GCcontent,GCcontent,No,Sequencing metrics
+Ncontent,Ncontent,No,Sequencing metrics
+SeqLengthDist,SeqLengthDist,No,Sequencing metrics
+SeqDuplication,SeqDuplication,No,Sequencing metrics
+OverrepSeqs,OverrepSeqs,No,Sequencing metrics
+AdapterContent,AdapterContent,No,Sequencing metrics
+KmerContent,KmerContent,No,Sequencing metrics
+percentGC_R1,percentGC_R1,No,Sequencing metrics
+phred100_R1,phred100_R1,No,Sequencing metrics
+phredGT30_R1,phredGT30_R1,No,Sequencing metrics
+phredGT35_R1,phredGT35_R1,No,Sequencing metrics
+Adapter88_R1,Adapter88_R1,No,Sequencing metrics
+percentGC_R2,percentGC_R2,No,Sequencing metrics
+phred100_R2,phred100_R2,No,Sequencing metrics
+phredGT30_R2,phredGT30_R2,No,Sequencing metrics
+phredGT35_R2,phredGT35_R2,No,Sequencing metrics
+Adapter88_R2,Adapter88_R2,No,Sequencing metrics
+ERCCsumLogErr,ERCCsumLogErr,No,Sequencing metrics
+bamFile,bamFile,No,Sequencing metrics
+trimmed,trimmed,Yes,Sequencing metrics
+numReads,TotalNReads,Yes,Sequencing metrics
+numMapped,numMapped,Yes,Sequencing metrics
+numUnmapped,numUnmapped,Yes,Sequencing metrics
+overallMapRate,MappingRate,Yes,Sequencing metrics
+concordMapRate,concordMapRate,Yes,Sequencing metrics
+totalMapped,totalMapped,Yes,Sequencing metrics
+mitoMapped,mitoMapped,Yes,Sequencing metrics
+mitoRate,mito_Rate,Yes,Sequencing metrics
+totalAssignedGene,totalAssignedGene,Yes,Sequencing metrics
+rRNA_rate,rRNA_rate,Yes,Sequencing metrics
+RNum,RNum,No,Phenotype
+BrNum,DonorID,No,Phenotype
+Region,StructureAcronym,Yes,Sample charactertics
+RIN,RIN,Yes,Sequencing metrics
+Age,AgeNumeric,Yes,Phenotype
+Sex,Sex,Yes,Phenotype
+Race,Ethnicity,Yes,Phenotype
+Dx,Diagnosis,Yes,Phenotype
+snpPC1,snpPC1,No,Sequencing metrics
+snpPC2,snpPC2,No,Sequencing metrics
+snpPC3,snpPC3,No,Sequencing metrics
+snpPC4,snpPC4,No,Sequencing metrics
+snpPC5,snpPC5,No,Sequencing metrics
+snpPC6,snpPC6,No,Sequencing metrics
+snpPC7,snpPC7,No,Sequencing metrics
+snpPC8,snpPC8,No,Sequencing metrics
+snpPC9,snpPC9,No,Sequencing metrics
+snpPC10,snpPC10,No,Sequencing metrics
+Fetal_replicating,Dev.Replicating,Yes,Sample charactertics
+Fetal_quiescent,Dev.Quiescent,Yes,Sample charactertics
+OPC,Adult.OPC,Yes,Sample charactertics
+Neurons,Adult.Neurons,Yes,Sample charactertics
+Astrocytes,Adult.Astrocytes,Yes,Sample charactertics
+Oligodendrocytes,Adult.Oligo,Yes,Sample charactertics
+Microglia,Adult.Microglia,Yes,Sample charactertics
+Endothelial,Adult.Endothelial,Yes,Sample charactertics
+NA,AgeInterval,Yes,Phenotype
+NA,Period,Yes,Phenotype
+NA,Regions,Yes,Sample charactertics
