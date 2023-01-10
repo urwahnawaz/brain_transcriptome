@@ -1,8 +1,19 @@
 source("libraries.R")
 
-
-
 ## Establish a set of cell-types 
+
+## type of signatures needed: 
+
+## - All: 14 cell-types - Each dev -rpkm and cpm - DONE 
+## - Adult and fetal - 14 cell-types - rpkm and cpm -DONE 
+
+## - All -6 cell-types for each dev - inhibitory and excitatory summed - rpkm and cpm - DONE 
+## - Adult and fetal -6 cell-types for each dev - inhibitory and excitatory summed - rpkm and cpm 
+
+
+
+## All - 5 cell types - Each dev - all Neuronal summed - rpkm and cpm 
+## Adult and fetal - 5 cell types - all neuronal summed- rpkm and cpm 
 
 ct.df = data.frame("Major_CT" = c(rep("Glia", 4), rep("PN", 4), rep("IN_CGE", 3), rep("IN_MGE",3)),
                 "Subtype" = c("Astro", "Micro", "OPC", "Oligo", 
@@ -16,7 +27,7 @@ cell_types = list()
 pattern = "/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj/major-dev-traj_"
 signatures =  list()
 
-
+exp_thresh <- 1
 for (files in directory){
     ct <- list.files(files, full.names = TRUE, pattern = "\\pseudo-bulk-cts_min10.csv$")
     
@@ -63,79 +74,64 @@ for (files in directory){
 
 
 signatures = do.call(cbind, signatures)
-signatures %<>% dplyr::select(-contains("Poor"))
+signatures %<>% dplyr::select(-contains(c("Poor", "Vas")))
     
+signatures %<>% rownames_to_column("genes") %>% 
+    mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="") %>% 
+    column_to_rownames("genes") %>% 
+    dplyr::select(-Micro.Neonatal)
 
-## Signatures as they are
 
-cpm_all =  apply(signatures, 2, function(x) {
+pfc_signatures = list()
+
+
+cpm =  apply(signatures, 2, function(x) {
     lib.size <- 10^6 / sum(x)
     x <- x * lib.size
     return(x)
 })
 
-cpm_all <- as.data.frame(cpm_all) ## expression CPM 
+cpm = cpm[which(apply(cpm, 1, max) > exp_thresh),]
 
+pfc_signatures$cpm_all = cpm
 
 ## rpkm 
-## defined as 
-### RPKM = numberOfReads / ( geneLength/1000 * totalNumReads/1,000,000 )
-
-# get gene lengths 
-
-## make TxDb from GTF file 
-#txdb <- makeTxDbFromGFF('/Users/urwah/Documents/PhD/Brain_transcriptome/Data/annotations/gencode.v19.annotation.gtf.gz')
-
-## get gene information
-#all.genes <- genes(txdb)
-
-## get the length of each of those genes
-#my.genes.lengths <- width(all.genes[genes])
-## put the names back on the lengths
-#names(my.genes.lengths) <- genes
-
-## print lengths
-#print(my.genes.lengths)
-#signatures 
-
-## import your list of gene names
-
-genes = signatures %>% rownames_to_column("genes") %>% 
-    dplyr::select(genes) %>% 
-    mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="")
-
-
-
-ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
-
-
-annotations <- biomaRt::getBM(mart = ensembl, attributes=c("ensembl_gene_id", "external_gene_name", "start_position", "end_position"))
-annotations <- dplyr::transmute(annotations, ensembl_gene_id, external_gene_name, gene_length = end_position - start_position)
 
 # Filter and re-order gene.annotations to match the order in your input genes list
-final.genes <- annotations %>% dplyr::filter(ensembl_gene_id %in% genes$genes)
-final.genes <- final.genes[order(match(final.genes$ensembl_gene_id, genes$genes)),]; rownames(final.genes) <-NULL
-dim(final.genes)
-dim(signatures)
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = "useast")
+annotations <- biomaRt::getBM(mart = ensembl, attributes=c("ensembl_gene_id", "external_gene_name", "start_position", "end_position"))
+annotations <- dplyr::transmute(annotations, ensembl_gene_id, external_gene_name, gene_length = end_position - start_position)
+annotations
+final.genes <- annotations %>% dplyr::filter(annotations$ensembl_gene_id %in% rownames(signatures))
+final.genes <- final.genes[order(match(final.genes$ensembl_gene_id, rownames(signatures))),]; rownames(final.genes) <-NULL
+
+exp.rpkm = signatures[rownames(signatures) %in% final.genes$ensembl_gene_id,]
+expression.rpkm <- data.frame(sapply(exp.rpkm, function(column) 10^9 * column / final.genes$gene_length / sum(column)))
+rownames(expression.rpkm) = rownames(exp.rpkm)
+expression.rpkm = expression.rpkm[which(apply(expression.rpkm, 1, max) > exp_thresh),]
+pfc_signatures$rpkm_all = expression.rpkm
 
 
 
+## Fetal and adult 
+
+fetal_cpm = signatures %>% 
+    dplyr::select(contains(c("Fetal", "Adult"))) %>% apply(., 2, function(x) {
+    lib.size <- 10^6 / sum(x)
+    x <- x * lib.size
+    return(x)
+})
+
+fetal_cpm = fetal_cpm[which(apply(fetal_cpm, 1, max) > exp_thresh),]
+pfc_signatures$all_adult_fetal_cpm = fetal_cpm
 
 
-signatures %<>% 
-    rownames_to_column("genes") %>%
-    mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="") %>% 
-    column_to_rownames("genes")
-    
+rpkm_fetal = exp.rpkm %>% 
+    dplyr::select(contains(c("Fetal", "Adult"))) %>% 
+    data.frame(sapply(., function(column) 10^9 * column / final.genes$gene_length / sum(column)))
+rpkm_fetal = rpkm_fetal[which(apply(rpkm_fetal, 1, max) > exp_thresh),]
 
-
-signatures_rpkm = signatures[rownames(signatures) %in% final.genes$ensembl_gene_id,]
-dim(signatures_rpkm)
-expression.rpkm <- data.frame(sapply(signatures_rpkm, function(column) 10^9 * column / final.genes$gene_length / sum(column)))
-
-
-rownames(expression.rpkm) = rownames(signatures_rpkm)
-expression.rpkm ## expression RPKM 
+pfc_signatures$all_adult_fetal_rpkm = rpkm_fetal
 
 #signatures$all= 
     
@@ -155,7 +151,6 @@ matrix = do.call("cbind", cell_types)
 matrix
 
 
-ct.df
 summed = sapply(unique(ct.df$Major_CT)[-1], function(y){
     subtype <- ct.df %>%
         dplyr::filter(Major_CT == y) %>%
@@ -165,76 +160,68 @@ summed = sapply(unique(ct.df$Major_CT)[-1], function(y){
             .[names(.) %in% subtype] %>%
             lapply(function(z){z[, colnames(z) == x]}) %>%
             do.call(cbind,.)  %>%
-            rowSums() %>%
-            head()
+            rowSums() 
     }, simplify = FALSE)  %>%
         do.call(cbind,.) %>%
         set_colnames(paste(y, colnames(.), sep = "_")) 
 }, simplify = FALSE)
 
 # as long as number of column number and row number matches 
-summed
-
-## Example 
-
-
-
-## creating cpm signatures 
-#### sigs is cpm based 
-sigs = list()
-all = cpm(cell_types_signature)
-dim(all)
-filt = rowSums(all >= 1 ) >= 6
-all = all[filt,]
-sigs$all_CT = all
+pan_neuronal_signatures = do.call("cbind", summed) %>% 
+    as.data.frame() %>%
+    rownames_to_column("genes") %>%
+    mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="")
 
 
-## 14 x all Fetal and adult only 
-sigs_fetal_adult = cell_types_signature %>% as.data.frame() %>% 
-    dplyr::select(contains("Fetal"), contains("Adult"))
+head(pan_neuronal_signatures,10)
 
-sigs_fetal_adult = cpm(sigs_fetal_adult)
-filt = rowSums(sigs_fetal_adult >= 1 ) >= 2
-sigs_fetal_adult= sigs_fetal_adult[filt,]
-dim(sigs_fetal_adult)
-sigs$fetal_adult = sigs_fetal_adult
+pan_neuronal_signatures = signatures %>% 
+    dplyr::select(contains(c("Astro", "Micro", "Oligo", "OPC"))) %>% 
+    rownames_to_column("genes") %>%
+    full_join(pan_neuronal_signatures) %>% column_to_rownames("genes")
 
 
+pan_neuronal_signatures
+PN_cpm = pan_neuronal_signatures %>% 
+    apply(., 2, function(x) {
+        lib.size <- 10^6 / sum(x)
+        x <- x * lib.size
+        return(x)
+    })
+
+PN_cpm = PN_cpm[which(apply(PN_cpm, 1, max) > exp_thresh),]
+
+pfc_signatures$PN_all_cpm = PN_cpm
+
+## RPKM 
+exp.rpkm.PN = pan_neuronal_signatures[rownames(pan_neuronal_signatures) %in% final.genes$ensembl_gene_id,]
+exp.rpkm.PN
+
+data.frame(sapply(exp.rpkm.PN, function(column) 10^9 * column / final.genes$gene_length / sum(column)))
 
 
-## Sum all neuronal cell-types per category 
+exp.rpkm.PN = exp.rpkm.PN[which(apply(exp.rpkm.PN, 1, max) > exp_thresh),]
+pfc_signatures$PN_all_rpkm = exp.rpkm.PN
 
+exp.rpkm.PN
 
+## PN - fetal and adult 
 
+PN_fetal_adult = 
+    pan_neuronal_signatures[rownames(pan_neuronal_signatures) %in% final.genes$ensembl_gene_id,]  %>% 
+    dplyr::select(contains(c("Fetal", "Adult"))) %>% 
+    data.frame(sapply(., function(column) 10^9 * column / final.genes$gene_length / sum(column)))
+PN_fetal_adult
 
+rpkm_fetal = rpkm_fetal[which(apply(rpkm_fetal, 1, max) > exp_thresh),]
+rownames(rpkm_fetal) = rownames(rpkm_fetal)
 
-### Downloadable from 10x genomics 
-# Need to get gene length
-
-# convert to rpkm 
-# first round filer = > 1 rpkm per cell type 
-
-
-#second round filer = > 1 rpkm per stage 
 
 
 y <- strsplit(rownames(trial), "--")
 ensid <- sapply(y, "[", 1)
 ensid
 
-
- 
- 
- 
- for (files in directory){
-     ct <- list.files(files, full.names = TRUE, pattern = "\\pseudo-bulk-cts_min10.csv$")
-     
-     for (j in ct){
-         print(j)
-         name = gsub(pattern, "", j)
-         print(name)
-     }}
- 
 
 
 

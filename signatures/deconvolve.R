@@ -10,13 +10,14 @@ prenatal = bspan.md %>% dplyr::filter(Period == "Prenatal" & Regions == "Cortex"
 
 prenatal.exp = bspan.exp %>% dplyr::select(prenatal$SampleID)
 
-signatures %<>% dplyr::select(-c("Micro.Neonatal", "Vas.Fetal", "Vas.Neonatal"))
 
-common_genes = intersect(rownames(prenatal.exp), rownames(expression.rpkm))
+
+
+common_genes = intersect(rownames(prenatal.exp), rownames(pfc_signatures$rpkm))
 prenatal.exp <- prenatal.exp[pmatch(common_genes, rownames(prenatal.exp)), ]
-expression.rpkm <- expression.rpkm[pmatch(common_genes, rownames(expression.rpkm)), ]
+expression.rpkm <- pfc_signatures$rpkm_all[pmatch(common_genes, rownames(pfc_signatures$rpkm_all)), ]
 
-y <- cbind(expression.rpkm, prenatal.exp) %>% dplyr::select(-c("Micro.Neonatal", "Vas.Fetal", "Vas.Neonatal"))
+y <- cbind(expression.rpkm, prenatal.exp)
 y <- normalizeBetweenArrays(y)
 y <- t(y)
 
@@ -60,13 +61,13 @@ colnames(plot_data) <- c("Sample", "Cell Type", "Proportion")
 
 plot_data$Proportion <- as.numeric(plot_data$Proportion)
 
-pdf("dtangle_prenatal_cortex.pdf")
-for (ct in all_ct){
+pdf("/home/neuro/Documents/Brain_integrative_transcriptome/Results/signatures/dtangle_prenatal_cortex_filter.pdf")
+for (ct in unique(annot$Cell_type)){
    data = plot_data %>% 
         dplyr::filter(str_detect(`Cell Type`, ct)) %>% 
         ggplot(aes(x = `Cell Type`, y=Proportion))+
         geom_violin(aes(fill = `Cell Type`)) + geom_jitter(height = 0, width = 0.1) +
-        theme(legend.position = "none", axis.text.x = element_text(angle=90)) + ylim(0, 0.25) + ggtitle("dtangle; BrainSpan prenatal mixture")
+        theme(legend.position = "none", axis.text.x = element_text(angle=90))  + ggtitle("dtangle; BrainSpan prenatal mixture")
     print(data)
 }
 dev.off()
