@@ -1,14 +1,5 @@
-library(edgeR)
-library(dplyr)
-library(data.table)
-library(tidyverse)
-library(magrittr)
-library(plyr)
-library(biomaRt)
-library(EDASeq)
-library(stringr)
+source("libraries.R")
 
-# sum columns 
 
 
 ## Establish a set of cell-types 
@@ -20,9 +11,9 @@ ct.df = data.frame("Major_CT" = c(rep("Glia", 4), rep("PN", 4), rep("IN_CGE", 3)
                               "PV", "PV_SCUBE3", "SST"))
 
 
-directory = file.path("/Volumes/share/mnt/Data0/PROJECTS/GWAS_Enrichment/GAVIN/Data/Expression/major-dev-traj")
+directory = file.path("/Users/urwah/Documents/PhD/Brain_transcriptome/Data/SN-data/major-dev-traj")
 cell_types = list()
-pattern = "/Volumes/share/mnt/Data0/PROJECTS/GWAS_Enrichment/GAVIN/Data/Expression/major-dev-traj/major-dev-traj_"
+pattern = "/Users/urwah/Documents/PhD/Brain_transcriptome/Data/SN-data/major-dev-traj/major-dev-traj_"
 signatures =  list()
 
 
@@ -71,11 +62,80 @@ for (files in directory){
 }
 
 
-
-do.call(cbind, signatures)
+signatures = do.call(cbind, signatures)
+signatures %<>% dplyr::select(-contains("Poor"))
+    
 
 ## Signatures as they are
-signatures =  list()
+
+cpm_all =  apply(signatures, 2, function(x) {
+    lib.size <- 10^6 / sum(x)
+    x <- x * lib.size
+    return(x)
+})
+
+cpm <- as.data.frame(cpm_all)
+cpm
+
+## rpkm 
+## defined as 
+### RPKM = numberOfReads / ( geneLength/1000 * totalNumReads/1,000,000 )
+
+# get gene lengths 
+
+## make TxDb from GTF file 
+txdb <- makeTxDbFromGFF('/Users/urwah/Documents/PhD/Brain_transcriptome/Data/annotations/gencode.v19.annotation.gtf.gz')
+
+## get gene information
+all.genes <- genes(txdb)
+
+## import your list of gene names
+
+genes = signatures %>% rownames_to_column("genes") %>% 
+    dplyr::select(genes) %>% 
+    mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="")
+
+
+
+
+ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
+
+
+annotations <- biomaRt::getBM(mart = mart, attributes=c("ensembl_gene_id", "external_gene_name", "start_position", "end_position"))
+annotations <- dplyr::transmute(annotations, ensembl_gene_id, external_gene_name, gene_length = end_position - start_position)
+
+# Filter and re-order gene.annotations to match the order in your input genes list
+final.genes <- annotations %>% dplyr::filter(ensembl_gene_id %in% genes$genes)
+final.genes <- final.genes[order(match(final.genes$ensembl_gene_id, genes$genes)),]; rownames(final.genes) <-NULL
+dim(final.genes)
+dim(signatures)
+
+
+
+## get the length of each of those genes
+my.genes.lengths <- width(all.genes[genes])
+## put the names back on the lengths
+names(my.genes.lengths) <- genes
+
+## print lengths
+print(my.genes.lengths)
+signatures 
+
+signatures %<>% 
+    rownames_to_column("genes") %>%
+    mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="") %>% 
+    column_to_rownames("genes")
+    
+
+
+signatures_rpkm = signatures[rownames(signatures) %in% final.genes$ensembl_gene_id,]
+dim(signatures_rpkm)
+expression.rpkm <- data.frame(sapply(signatures_rpkm, function(column) 10^9 * column / final.genes$gene_length / sum(column)))
+
+
+rownames(expression.rpkm) = rownames(signatures_rpkm)
+expression.rpkm
+
 #signatures$all= 
     
     cell_types %>% 
@@ -162,13 +222,17 @@ ensid <- sapply(y, "[", 1)
 ensid
 
 
-human <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
- gene_coords=getBM(attributes=c("hgnc_symbol","ensembl_gene_id", "start_position","end_position"), filters="ensembl_gene_id", values=ensembl_list, mart=human)
- gene_coords$size=gene_coords$end_position - gene_coords$start_position
- gene_coords
  
  
  
+ for (files in directory){
+     ct <- list.files(files, full.names = TRUE, pattern = "\\pseudo-bulk-cts_min10.csv$")
+     
+     for (j in ct){
+         print(j)
+         name = gsub(pattern, "", j)
+         print(name)
+     }}
  
 
 
