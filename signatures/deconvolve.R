@@ -6,7 +6,8 @@ bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_
 bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv/Formatted/BrainSpan-metadata.csv", row.names = 1, header= TRUE)
 
 
-prenatal = bspan.md %>% dplyr::filter(Period == "Prenatal")
+prenatal = bspan.md %>% dplyr::filter(Period == "Prenatal" & Regions == "Cortex")
+
 prenatal.exp = bspan.exp %>% dplyr::select(prenatal$SampleID)
 
 signatures %<>% dplyr::select(-c("Micro.Neonatal", "Vas.Fetal", "Vas.Neonatal"))
@@ -26,23 +27,18 @@ annot = colnames(signatures) %>%
     set_colnames("Sample") %>% 
     mutate(Cell_type = gsub("\\..*", "", Sample))
 
-all_ct = unique(annot$Cell_type)
+all_ct_age = unique(annot$Sample)
 
-all_ct
 
-head(annot)
-
-annot$Cell_type
-
-ps = lapply(1:length(all_ct), function(i) {
-    which(annot$Cell_type == all_ct[i])
+ps = lapply(1:length(all_ct_age), function(i) {
+    which(annot$Sample == all_ct_age[i])
 })
 
-names(ps) = all_ct
-
+names(ps) = all_ct_age
 
 
 marker_list = find_markers(y,pure_samples=ps,data_type="rna-seq",marker_method='ratio')
+
 
 q = .1
 quantiles = lapply(marker_list$V,function(x)quantile(x,1-q))
@@ -54,14 +50,38 @@ n_markers
 marks = marker_list$L
 dc <- dtangle(y, pure_samples=ps, n_markers=n_markers, data_type = 'rna-seq', markers = marks)
 final_est <- dc$estimates[(dim(signatures)[2]+1):dim(y)[1],]
-colnames(final_est) <-  all_ct
+colnames(final_est) <-  all_ct_age
 
 head(final_est)
-
+final_est
 
 plot_data <- melt(final_est)
 colnames(plot_data) <- c("Sample", "Cell Type", "Proportion") 
 
 plot_data$Proportion <- as.numeric(plot_data$Proportion)
 
-ggplot(plot_data, aes(x = `Cell Type`, y=Proportion))+geom_violin(aes(fill = `Cell Type`)) + geom_jitter(height = 0, width = 0.1)
+pdf("dtangle_prenatal_cortex.pdf")
+for (ct in all_ct){
+   data = plot_data %>% 
+        dplyr::filter(str_detect(`Cell Type`, ct)) %>% 
+        ggplot(aes(x = `Cell Type`, y=Proportion))+
+        geom_violin(aes(fill = `Cell Type`)) + geom_jitter(height = 0, width = 0.1) +
+        theme(legend.position = "none", axis.text.x = element_text(angle=90)) + ylim(0, 0.25) + ggtitle("dtangle; BrainSpan prenatal mixture")
+    print(data)
+}
+dev.off()
+
+
+plot_data %>% 
+    dplyr::filter(str_detect(`Cell Type`,  )) %>% 
+    ggplot(aes(x = `Cell Type`, y=Proportion))+
+    geom_violin(aes(fill = `Cell Type`)) + geom_jitter(height = 0, width = 0.1) +
+    theme(legend.position = "none", axis.text.x = element_text(angle=90)) + ylim(0, 0.25) + ggtitle("dtangle; BrainSpan prenatal mixture")
+
+
+    
+
+#### Things to do 
+
+### Run CIBERSORT 
+### Create different iterations of signatures 
