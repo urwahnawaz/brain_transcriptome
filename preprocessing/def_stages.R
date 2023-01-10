@@ -44,6 +44,7 @@ age_intervals[["13-15pcw"]] = paste0(c(13:15), " pcw") # 3A 13-15 pcw Early mid-
 age_intervals[["16-18pcw"]] = paste0(c(16:18), " pcw") # 3B 16-18 pcw Early mid-prenatal
 age_intervals[["19-24pcw"]] = paste0(c(19:24), " pcw") # 4 19-24 pcw Late mid-prenatal
 age_intervals[["25-38pcw"]] = paste0(c(25:38), " pcw") # 5 25-38 pcw Late prenatal
+age_intervals[["39-40pcw"]] = paste0(c(39:40), " pcw") # 5 25-38 pcw Late prenatal
 age_intervals[["0-5mos"]] = paste0(c(0:5), " mos") # 6 Birth-5 months Early infancy
 age_intervals[["6-18mos"]] = c(paste0(c(6:18)," mos"), "1 yrs") # 7 6-18 months Late infancy
 age_intervals[["19mos-5yrs"]] = c(paste0(c(19:20)," mos"), paste0(c(2:5), " yrs"))  # 8 19 months-5 yrs Early childhood
@@ -108,5 +109,5 @@ regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx",
 
 regions[["Cerebellum"]] = c("CBC", "CB", "URL")
 
-regions[["Spinal Cord"]] = c("SC1")
+regions[["Spinal Cord"]] = c("SCI")
 

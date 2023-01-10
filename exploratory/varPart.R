@@ -3,15 +3,29 @@ libs = c("dplyr", "ggplot2", "variancePartition", "tools", "magrittr", "tibble",
 libsLoaded <- lapply(libs,function(l){suppressWarnings(suppressMessages(library(l, character.only = TRUE)))})
 
 
-# load data 
-
-bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/FormattedData/BrainSpan/BrainSpan-exp.csv", row.names = 1) %>% column_to_rownames("EnsemblID")
-colnames(bspan.exp) = gsub("X", "", colnames(bspan.exp))
-colnames(bspan.exp) = gsub("\\.", "-", colnames(bspan.exp))
-bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/FormattedData/BrainSpan/BrainSpan-metadata.csv")
+### Keeping all samples 
+exp = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-exp.csv", header=TRUE, check.names=FALSE, row.names =1) 
+md= read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata.csv", header=TRUE, check.names=FALSE)
+colnames(md)
+# load data
+dim(exp)
+dim(md)
 
 form.bspan =  ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + mRIN
+exp = exp[apply(exp >= 1, 1, sum) >= 0.1*ncol(exp),]
+dim(exp)
 
+form.bseq = ~AgeNumeric + (1|StructureAcronym) + (1|Sex) + RIN +  (1|Diagnosis) + mito_Rate + rRNA_rate + TotalNReads + MappingRate
+gtex.form <- ~ TotalNReads + rRNA_rate + (1|TypeofBatch) + (1|DateofBatch) + (1|BSS_Collection_side_code) + (1|AgeInterval) + (1|Sex) + (1|Regions) + IntergenicRate + RIN
+
+varpart = fitExtractVarPartModel(exp, gtex.form, md)
+
+write.csv(varpart,"/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-varPart.csv")
+
+
+head(exp)[1:10]
+dim(exp)
+dim(md)
 perform.varPart = function(exp, md, form, region){
   
   # Filter expression
@@ -25,6 +39,8 @@ perform.varPart = function(exp, md, form, region){
   varpart = fitExtractVarPartModel(exp, form, md)
   
 }
+
+
 
 regions = unique(bspan.md$Regions)
 

@@ -13,11 +13,11 @@ add_feature = function(feature_column, features){
 num_to_round = function(age){
   if (is.na(age)) {
     NaN
-  } else if (age > 2) {
+  } else if (age >= 2) {
     paste0(round(age), " yrs")
   } else if (age < 0) {
     paste0(round(age * 52 + 40), " pcw")
-  } else if (age > 0 & age < 2) {
+  } else if (age >= 0 & age < 2) {
     paste0(round(age * 12), " mos")
   }
 }
@@ -102,6 +102,7 @@ clean_and_format = function(dir ,dataset, outdir){
       md$Age[grepl("_yrs", md$Age)] %>%  str_remove("_yrs") %>% 
       as.numeric 
     
+    md %<>% mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))
     colnames(exp) <- md$SampleID
     rownames(exp) <- rows.metadata$ensembl_gene_id
     exp %<>% rownames_to_column("EnsemblID")
@@ -163,7 +164,7 @@ clean_and_format = function(dir ,dataset, outdir){
            Diagnosis == "Schizophrenia") %>% 
             mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
          StructureAcronym = c("PFC")) %>%  
-  mutate(Period = ifelse(.$AgeNumeric > 0, "Postnatal", "Prenatal"))  %>%
+  mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))  %>%
   mutate(Age_rounded = as.character(sapply(na.omit(.$AgeNumeric), num_to_round))) %>% as.data.frame() %>%
   mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
   mutate(Regions = c("Cortex")) %>% 
@@ -210,10 +211,11 @@ clean_and_format = function(dir ,dataset, outdir){
            Diagnosis == "Schizophrenia") %>% 
   mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
          StructureAcronym = c("PFC")) %>%  
-  mutate(Period = ifelse(.$AgeNumeric > 0, "Postnatal", "Prenatal"))  %>%
+  mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))  %>%
   mutate(Age_rounded = as.character(sapply(.$AgeNumeric, num_to_round))) %>% as.data.frame() %>%
   mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
   mutate(Regions = c("Cortex")) %>% 
+  mutate(DonorID = as.character(.$SampleID)) %>%
   dplyr::select(-Age_rounded) %>%
   as.data.frame()
     
