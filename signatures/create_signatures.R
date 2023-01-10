@@ -11,9 +11,9 @@ ct.df = data.frame("Major_CT" = c(rep("Glia", 4), rep("PN", 4), rep("IN_CGE", 3)
                               "PV", "PV_SCUBE3", "SST"))
 
 
-directory = file.path("/Users/urwah/Documents/PhD/Brain_transcriptome/Data/SN-data/major-dev-traj")
+directory = file.path("/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj")
 cell_types = list()
-pattern = "/Users/urwah/Documents/PhD/Brain_transcriptome/Data/SN-data/major-dev-traj/major-dev-traj_"
+pattern = "/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj/major-dev-traj_"
 signatures =  list()
 
 
@@ -74,8 +74,8 @@ cpm_all =  apply(signatures, 2, function(x) {
     return(x)
 })
 
-cpm <- as.data.frame(cpm_all)
-cpm
+cpm_all <- as.data.frame(cpm_all) ## expression CPM 
+
 
 ## rpkm 
 ## defined as 
@@ -84,10 +84,19 @@ cpm
 # get gene lengths 
 
 ## make TxDb from GTF file 
-txdb <- makeTxDbFromGFF('/Users/urwah/Documents/PhD/Brain_transcriptome/Data/annotations/gencode.v19.annotation.gtf.gz')
+#txdb <- makeTxDbFromGFF('/Users/urwah/Documents/PhD/Brain_transcriptome/Data/annotations/gencode.v19.annotation.gtf.gz')
 
 ## get gene information
-all.genes <- genes(txdb)
+#all.genes <- genes(txdb)
+
+## get the length of each of those genes
+#my.genes.lengths <- width(all.genes[genes])
+## put the names back on the lengths
+#names(my.genes.lengths) <- genes
+
+## print lengths
+#print(my.genes.lengths)
+#signatures 
 
 ## import your list of gene names
 
@@ -97,11 +106,10 @@ genes = signatures %>% rownames_to_column("genes") %>%
 
 
 
-
 ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
 
 
-annotations <- biomaRt::getBM(mart = mart, attributes=c("ensembl_gene_id", "external_gene_name", "start_position", "end_position"))
+annotations <- biomaRt::getBM(mart = ensembl, attributes=c("ensembl_gene_id", "external_gene_name", "start_position", "end_position"))
 annotations <- dplyr::transmute(annotations, ensembl_gene_id, external_gene_name, gene_length = end_position - start_position)
 
 # Filter and re-order gene.annotations to match the order in your input genes list
@@ -112,14 +120,7 @@ dim(signatures)
 
 
 
-## get the length of each of those genes
-my.genes.lengths <- width(all.genes[genes])
-## put the names back on the lengths
-names(my.genes.lengths) <- genes
 
-## print lengths
-print(my.genes.lengths)
-signatures 
 
 signatures %<>% 
     rownames_to_column("genes") %>%
@@ -134,7 +135,7 @@ expression.rpkm <- data.frame(sapply(signatures_rpkm, function(column) 10^9 * co
 
 
 rownames(expression.rpkm) = rownames(signatures_rpkm)
-expression.rpkm
+expression.rpkm ## expression RPKM 
 
 #signatures$all= 
     
