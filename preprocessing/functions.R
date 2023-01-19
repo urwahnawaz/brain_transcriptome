@@ -10,6 +10,19 @@ add_feature = function(feature_column, features){
     names(features)[sapply(features, function(f) x %in% f)]})) 
 }
 
+num_to_round = function(age){
+  if (is.na(age)) {
+    NaN
+  } else if (age >= 2) {
+    paste0(round(age), " yrs")
+  } else if (age < 0) {
+    paste0(round(age * 52 + 40), " pcw")
+  } else if (age >= 0 & age < 2) {
+    paste0(round(age * 12), " mos")
+  }
+}
+
+
 
 clean_and_format = function(dir ,dataset, outdir){
   
@@ -31,7 +44,7 @@ clean_and_format = function(dir ,dataset, outdir){
     
     md = md %>% mutate(StructureAcronym = add_feature(.$Structure, structure_acronym)) %>% 
       mutate(Regions = add_feature(.$StructureAcronym, regions), 
-             Age = paste(.$Age, "yrs", sep = ""), 
+             AgeInterval = paste(.$Age, "yrs", sep = ""), 
              Diagnosis = "Control", 
              Sex = ifelse(Sex == 1, "M", "F"), 
              Period = "Postnatal") %>% as.data.frame()
@@ -68,7 +81,7 @@ clean_and_format = function(dir ,dataset, outdir){
     md = columns.metadata %>% 
       mutate(Stage = add_feature(.$Age, stages), 
              Regions = add_feature(.$StructureAcronym, regions), 
-             AgeIntervals = add_feature(.$Age, age_intervals), 
+             AgeInterval = add_feature(.$Age, age_intervals), 
              Diagnosis = "Control", 
              Age = gsub(" ","_", .$Age)) %>%  
       mutate(SampleID = paste(DonorID, Age, StructureAcronym, Stage, sep = "_"), 
@@ -89,6 +102,7 @@ clean_and_format = function(dir ,dataset, outdir){
       md$Age[grepl("_yrs", md$Age)] %>%  str_remove("_yrs") %>% 
       as.numeric 
     
+    md %<>% mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))
     colnames(exp) <- md$SampleID
     rownames(exp) <- rows.metadata$ensembl_gene_id
     exp %<>% rownames_to_column("EnsemblID")
@@ -140,31 +154,22 @@ clean_and_format = function(dir ,dataset, outdir){
     comp <- comp[,57:64]
     m <- match(rownames(comp), rownames(w)) # they are
     md<- cbind(w, comp[m,])
-    
+    colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalMetadataColumnName)]
     # Adding features 
-    md = md %>% mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"), 
-                       Region = gsub("HIPPO", "HIP", .$Region)) %>%
-      mutate(Regions = add_feature(.$Region, regions)) %>% 
-      mutate(age_interval = as.character(cut(Age, seq(-1, 100, by = 10)))) %>%
-      mutate(AgeInterval = sapply(age_interval, function(i) {
-        paste0( as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
-                "-", as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")})) %>% 
-      dplyr::select(-age_interval)
-    
-    
-    md$AgeInterval[md$Age >= -0.76 & md$Age <= -0.70] = "1-3pcw"
-    md$AgeInterval[md$Age >= -0.701 & md$Age <= -0.62] = "4-7pcw"
-    md$AgeInterval[md$Age >= -0.621 & md$Age <= -0.58] = "8-9pcw"
-    md$AgeInterval[md$Age >= -0.57 & md$Age <= -0.53] = "10-12pcw"
-    md$AgeInterval[md$Age >= -0.52 & md$Age <= -0.48] = "13-15pcw"
-    md$AgeInterval[md$Age >= -0.47 & md$Age <= -0.42] = "16-18pcw"
-    md$AgeInterval[md$Age >= -0.41 & md$Age <= -0.30] = "19-24pcw"
-    md$AgeInterval[md$Age >= -0.29 & md$Age <= -0.038] = "25-38pcw"
-    md$AgeInterval[md$Age >= -0.019 & md$Age < 0] = "39-40pcw"
-    md$AgeInterval[md$Age >= 0 & md$Age <= 0.49] <- "0-5mos"
-    md$AgeInterval[md$Age >= 0.50 & md$Age <= 1.58] <- "6-18mos"
-    md$AgeInterval[md$Age >= 1.5833 & md$Age <= 5.99] <- "19mos-5yrs"
-    md$AgeInterval[md$Age >= 6 & md$Age <= 11.99] <- "6-11yrs"  
+    md %<>%
+      filter(Diagnosis == "Affective Disorder" |
+               Diagnosis == "Autism Spectrum Disorder" | 
+               Diagnosis == "Bipolar Disorder" |
+               Diagnosis == "Control" |
+               Diagnosis == "Schizophrenia") %>% 
+      mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
+             StructureAcronym = c("PFC")) %>%  
+      mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))  %>%
+      mutate(Age_rounded = as.character(sapply(na.omit(.$AgeNumeric), num_to_round))) %>% as.data.frame() %>%
+      mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
+      mutate(Regions = c("Cortex")) %>% 
+      dplyr::select(-Age_rounded) %>%
+      as.data.frame()
     
     exp = rse_gene@assays@.xData$data$rpkm
     rownames(exp) <- sub("\\.[0-9]*$", "", rownames(exp))
@@ -206,27 +211,13 @@ clean_and_format = function(dir ,dataset, outdir){
                Diagnosis == "Schizophrenia") %>% 
       mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
              StructureAcronym = c("PFC")) %>%  
-      mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"))  %>%
-      mutate(age_interval = as.character(cut(AgeNumeric, seq(-11, 100, by = 10)))) %>%
-      mutate(AgeInterval = sapply(age_interval, function(i) {
-        paste0(as.numeric(gsub("^\\(([-0-9]+),.+", "\\1", i)) + 1,
-               "-",as.numeric(gsub(".+,([0-9]+)\\]$", "\\1", i)), "yrs")   })) %>% 
-      dplyr::select(-age_interval) %>% 
+      mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))  %>%
+      mutate(Age_rounded = as.character(sapply(.$AgeNumeric, num_to_round))) %>% as.data.frame() %>%
+      mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
+      mutate(Regions = c("Cortex")) %>% 
+      mutate(DonorID = as.character(.$SampleID)) %>%
+      dplyr::select(-Age_rounded) %>%
       as.data.frame()
-    
-    md$AgeInterval[md$AgeNumeric >= -0.76 & md$AgeNumeric <= -0.70] = "1-3pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.701 & md$AgeNumeric<= -0.62] = "4-7pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.621 & md$AgeNumeric<= -0.58] = "8-9pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.57 & md$AgeNumeric<= -0.53] = "10-12pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.52 & md$AgeNumeric < -0.47] = "13-15pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.47 & md$AgeNumeric<= -0.42] = "16-18pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.41 & md$AgeNumeric<= -0.30] = "19-24pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.29 & md$AgeNumeric<= -0.038] = "25-38pcw"
-    md$AgeInterval[md$AgeNumeric>= -0.020 & md$AgeNumeric< 0] = "39-40pcw"
-    md$AgeInterval[md$AgeNumeric>= 0 & md$AgeNumeric<= 0.49] = "0-5mos"
-    md$AgeInterval[md$AgeNumeric>= 0.50 & md$AgeNumeric<= 1.58] = "6-18mos"
-    md$AgeInterval[md$AgeNumeric>= 1.5833 & md$AgeNumeric<= 5.99] = "19mos-5yrs"
-    md$AgeInterval[md$AgeNumeric>= 6 & md$AgeNumeric<= 11.99] = "6-11yrs" 
     
     
     exp %<>% rownames_to_column("EnsemblID")
@@ -250,5 +241,6 @@ clean_and_format = function(dir ,dataset, outdir){
   
   
 }
+
 
 

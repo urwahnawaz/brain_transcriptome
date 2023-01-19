@@ -42,7 +42,7 @@ for (f in directory){
 
 
 
-bspan.md = read.csv("../../Data/FormattedData/BrainSpan/BrainSpan-metadata.csv")
+bspan.md = read.csv("../../../Data/FormattedData/BrainSpan/BrainSpan-metadata.csv")
 bseq.md = read.csv("../../Data/FormattedData/BrainSeq/BrainSeq-metadata.csv")
 gtex.md = read.csv("../../Data/FormattedData/Gtex/GTEx-metadata.csv")
 pe.md = read.csv("../../Data/FormattedData/PsychEncode/PsychEncode-metadata.csv", header=TRUE)

@@ -1,0 +1,93 @@
+---
+output:
+  reprex::reprex_document:
+    venue: "gh"
+    advertise: FALSE
+    session_info: TRUE
+    style: TRUE
+    comment: "#;-)"
+    tidyverse_quiet: FALSE
+    std_out_err: TRUE
+knit: reprex::reprex_render
+---
+
+# Creating temporal deconvolution signatures 
+
+
+```{r}
+source("libraries.R")
+source("functions.R")
+```
+
+
+```{r celltypes}
+ct.df = data.frame("Major_CT" = c(rep("Glia", 4), rep("PN", 4), rep("IN_CGE", 3), rep("IN_MGE",3)),
+                "Subtype" = c("Astro", "Micro", "OPC", "Oligo", 
+                              "L2-3_CUX2", "L4_RORB", "L5-6_THEMIS", "L5-6_TLE4", 
+                              "VIP", "ID2", "LAMP5_NOS1", 
+                              "PV", "PV_SCUBE3", "SST"))
+
+ct.df %>% pander()
+```
+
+
+```{r load-data}
+directory = file.path("/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj")
+cell_types = list()
+pattern = "/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj/major-dev-traj_"
+signatures =  list()
+for (files in directory){
+    ct <- list.files(files, full.names = TRUE, pattern = "\\pseudo-bulk-cts_min10.csv$")
+    
+    for (j in ct){
+        
+        ct_file = read.csv(j, header= TRUE, row.names = 1)
+        prefixes = unique(sub("\\..*", "", colnames(ct_file)))
+        name = gsub(pattern, "", j)
+        name = gsub("_pseudo-bulk-cts_min10.csv", "", name)
+        message("Now manipulating data for ", paste0(name))
+        
+        for (prefix in prefixes){
+            column = ct_file %>% dplyr::select(contains(prefix)) 
+            if (ncol(column) > 1) {
+                message("All good, keeping columns for ", paste0(prefix))
+                single_col = NULL
+            } else {
+                message(paste0(prefix), " only contains a single column")
+                #name = colnames(column)
+                single_col = ct_file %>% as.data.frame() %>% dplyr::select(colnames(column))
+                ct_file = ct_file %>% as.data.frame() %>%  dplyr::select(-colnames(column))
+            }
+            
+        }
+        
+        message("Now summing for ", paste0(name))
+        signature = sapply(prefixes, function(x)rowSums(ct_file[,startsWith(colnames(ct_file), x)]))
+        
+        
+        
+        if (is.null(single_col)) {
+        } else {
+            signature = data.frame(signature, single_col)
+        }
+        final_sig = signature 
+        final_sig %>% set_colnames(paste(name, colnames(final_sig), sep = "_"))
+         
+        ## Add all different cell types 
+        cell_types[[paste0(name)]] = signature 
+        signatures[[paste0(name)]] = final_sig
+     }
+    
+}
+
+```
+
+
+```{r filtering}
+exp_thresh <- 1
+```
+
+
+```{r}
+
+```

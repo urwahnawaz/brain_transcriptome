@@ -1,4 +1,5 @@
 source("libraries.R")
+source("functions.R")
 
 ## Establish a set of cell-types 
 
@@ -19,15 +20,16 @@ ct.df = data.frame("Major_CT" = c(rep("Glia", 4), rep("PN", 4), rep("IN_CGE", 3)
                 "Subtype" = c("Astro", "Micro", "OPC", "Oligo", 
                               "L2-3_CUX2", "L4_RORB", "L5-6_THEMIS", "L5-6_TLE4", 
                               "VIP", "ID2", "LAMP5_NOS1", 
-                              "PV", "PV_SCUBE3", "SST"))
+                              "PV", "PV_SCUBE3", "SST"), 
+                "Major_CT_all" = c(rep("Glia", 4), rep("Neuron", 10)) )
 
 
+## Get data and create matrices 
 directory = file.path("/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj")
 cell_types = list()
 pattern = "/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj/major-dev-traj_"
 signatures =  list()
 
-exp_thresh <- 1
 for (files in directory){
     ct <- list.files(files, full.names = TRUE, pattern = "\\pseudo-bulk-cts_min10.csv$")
     
@@ -74,84 +76,14 @@ for (files in directory){
 
 
 signatures = do.call(cbind, signatures)
-signatures %<>% dplyr::select(-contains(c("Poor", "Vas")))
-    
-signatures %<>% rownames_to_column("genes") %>% 
+signatures %<>%
+    dplyr::select(-contains(c("Poor", "Vas"))) %>%
+    rownames_to_column("genes") %>% 
     mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="") %>% 
     column_to_rownames("genes") %>% 
     dplyr::select(-Micro.Neonatal)
 
-
-pfc_signatures = list()
-
-
-cpm =  apply(signatures, 2, function(x) {
-    lib.size <- 10^6 / sum(x)
-    x <- x * lib.size
-    return(x)
-})
-
-cpm = cpm[which(apply(cpm, 1, max) > exp_thresh),]
-
-pfc_signatures$cpm_all = cpm
-
-## rpkm 
-
-# Filter and re-order gene.annotations to match the order in your input genes list
-ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = "useast")
-annotations <- biomaRt::getBM(mart = ensembl, attributes=c("ensembl_gene_id", "external_gene_name", "start_position", "end_position"))
-annotations <- dplyr::transmute(annotations, ensembl_gene_id, external_gene_name, gene_length = end_position - start_position)
-annotations
-final.genes <- annotations %>% dplyr::filter(annotations$ensembl_gene_id %in% rownames(signatures))
-final.genes <- final.genes[order(match(final.genes$ensembl_gene_id, rownames(signatures))),]; rownames(final.genes) <-NULL
-
-exp.rpkm = signatures[rownames(signatures) %in% final.genes$ensembl_gene_id,]
-expression.rpkm <- data.frame(sapply(exp.rpkm, function(column) 10^9 * column / final.genes$gene_length / sum(column)))
-rownames(expression.rpkm) = rownames(exp.rpkm)
-expression.rpkm = expression.rpkm[which(apply(expression.rpkm, 1, max) > exp_thresh),]
-pfc_signatures$rpkm_all = expression.rpkm
-
-
-
-## Fetal and adult 
-
-fetal_cpm = signatures %>% 
-    dplyr::select(contains(c("Fetal", "Adult"))) %>% apply(., 2, function(x) {
-    lib.size <- 10^6 / sum(x)
-    x <- x * lib.size
-    return(x)
-})
-
-fetal_cpm = fetal_cpm[which(apply(fetal_cpm, 1, max) > exp_thresh),]
-pfc_signatures$all_adult_fetal_cpm = fetal_cpm
-
-
-rpkm_fetal = exp.rpkm %>% 
-    dplyr::select(contains(c("Fetal", "Adult"))) %>% 
-    data.frame(sapply(., function(column) 10^9 * column / final.genes$gene_length / sum(column)))
-rpkm_fetal = rpkm_fetal[which(apply(rpkm_fetal, 1, max) > exp_thresh),]
-
-pfc_signatures$all_adult_fetal_rpkm = rpkm_fetal
-
-#signatures$all= 
-    
-    cell_types %>% 
-        do.call(cbind,.) %>% 
-        set_colnames(paste(names(cell_types), colnames(.), sep = "_")) 
-        
-    #do.call(cbind,.)%>% 
-
-    
-lapply(cell_types, function(x){
-    set_colnames(paste(names(x), colnames(x), sep = "_"))
-})
-colnames()
-head(cell_types)
-matrix = do.call("cbind", cell_types)
-matrix
-
-
-summed = sapply(unique(ct.df$Major_CT)[-1], function(y){
+pan_neuronal_signatures = sapply(unique(ct.df$Major_CT)[-1], function(y){
     subtype <- ct.df %>%
         dplyr::filter(Major_CT == y) %>%
         dplyr::pull(Subtype)
@@ -163,65 +95,132 @@ summed = sapply(unique(ct.df$Major_CT)[-1], function(y){
             rowSums() 
     }, simplify = FALSE)  %>%
         do.call(cbind,.) %>%
-        set_colnames(paste(y, colnames(.), sep = "_")) 
-}, simplify = FALSE)
+        set_colnames(paste(y, colnames(.), sep = ".")) 
+}, simplify = FALSE) %>% do.call(cbind, .) %>% 
+    as.data.frame() %>%
+    rownames_to_column("genes") %>%
+    mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="")
 
-# as long as number of column number and row number matches 
-pan_neuronal_signatures = do.call("cbind", summed) %>% 
+pan_neuronal_signatures = signatures %>% 
+    dplyr::select(contains(c("Astro", "Micro", "Oligo", "OPC"))) %>% 
+    rownames_to_column("genes") %>%
+    full_join(pan_neuronal_signatures) %>% 
+    column_to_rownames("genes")
+
+
+all_neuro = sapply(unique(ct.df$Major_CT_all)[-1], function(y){
+    subtype <- ct.df %>%
+        dplyr::filter(Major_CT_all == y) %>%
+        dplyr::pull(Subtype)
+    sapply(colnames(cell_types$Astro), function(x){
+        cell_types %>%
+            .[names(.) %in% subtype] %>%
+            lapply(function(z){z[, colnames(z) == x]}) %>%
+            do.call(cbind,.)  %>%
+            rowSums() 
+    }, simplify = FALSE)  %>%
+        do.call(cbind,.) %>%
+        set_colnames(paste(y, colnames(.), sep = ".")) 
+}, simplify = FALSE) %>% 
+    do.call(cbind, .) %>% 
     as.data.frame() %>%
     rownames_to_column("genes") %>%
     mutate_at(.vars = "genes", .funs = gsub, pattern = "\\--.*", replacement ="")
 
 
-head(pan_neuronal_signatures,10)
-
-pan_neuronal_signatures = signatures %>% 
+all_neuro = signatures %>% 
     dplyr::select(contains(c("Astro", "Micro", "Oligo", "OPC"))) %>% 
     rownames_to_column("genes") %>%
-    full_join(pan_neuronal_signatures) %>% column_to_rownames("genes")
+    full_join(all_neuro) %>% 
+    column_to_rownames("genes")
 
 
-pan_neuronal_signatures
-PN_cpm = pan_neuronal_signatures %>% 
-    apply(., 2, function(x) {
-        lib.size <- 10^6 / sum(x)
-        x <- x * lib.size
-        return(x)
-    })
-
-PN_cpm = PN_cpm[which(apply(PN_cpm, 1, max) > exp_thresh),]
-
-pfc_signatures$PN_all_cpm = PN_cpm
-
-## RPKM 
-exp.rpkm.PN = pan_neuronal_signatures[rownames(pan_neuronal_signatures) %in% final.genes$ensembl_gene_id,]
-exp.rpkm.PN
-
-data.frame(sapply(exp.rpkm.PN, function(column) 10^9 * column / final.genes$gene_length / sum(column)))
+## Normalization and filtering 
+exp_thresh = 1 
+pfc_signatures = list()
 
 
-exp.rpkm.PN = exp.rpkm.PN[which(apply(exp.rpkm.PN, 1, max) > exp_thresh),]
-pfc_signatures$PN_all_rpkm = exp.rpkm.PN
+## CPM 
 
-exp.rpkm.PN
+# 1) All CT and stages 
+pfc_signatures$cpm_sig = cpm(signatures) %>% 
+    .[which(apply(., 1, max) > exp_thresh),] 
 
-## PN - fetal and adult 
+# 2) All CT only Adult and fetal stages 
+pfc_signatures$cpm_sig_adult_fetal = signatures %>% 
+    dplyr::select(contains(c("Fetal", "Adult"))) %>%
+    cpm(.) %>%
+    .[which(apply(., 1, max) > exp_thresh),] 
 
-PN_fetal_adult = 
-    pan_neuronal_signatures[rownames(pan_neuronal_signatures) %in% final.genes$ensembl_gene_id,]  %>% 
-    dplyr::select(contains(c("Fetal", "Adult"))) %>% 
-    data.frame(sapply(., function(column) 10^9 * column / final.genes$gene_length / sum(column)))
-PN_fetal_adult
+# 3) pan neuronal - all stages 
+pfc_signatures$cpm_panNeuro = cpm(pan_neuronal_signatures) %>% 
+    .[which(apply(., 1, max) > exp_thresh),] 
 
-rpkm_fetal = rpkm_fetal[which(apply(rpkm_fetal, 1, max) > exp_thresh),]
-rownames(rpkm_fetal) = rownames(rpkm_fetal)
+# 4) pan neuronal -- adult and fetal stages 
+pfc_signatures$cpm_panNeuro_adult_fetal = pan_neuronal_signatures %>% 
+    dplyr::select(contains(c("Fetal", "Adult"))) %>%
+    cpm(.) %>%
+    .[which(apply(., 1, max) > exp_thresh),] 
+
+# 5) all neuronal --all stages 
+pfc_signatures$cpm_all_neuro = cpm(all_neuro) %>% 
+    .[which(apply(., 1, max) > exp_thresh),]
+
+# 6) all neuronal -- fetal and adult 
+pfc_signatures$cpm_all_neuro_adult_fetal = all_neuro %>% 
+    dplyr::select(contains(c("Fetal", "Adult"))) %>%
+    cpm(.) %>%
+    .[which(apply(., 1, max) > exp_thresh),] 
 
 
+### RPKM 
 
-y <- strsplit(rownames(trial), "--")
-ensid <- sapply(y, "[", 1)
-ensid
+length = getLength(rownames(signatures))
+
+# 1)  All CT and stages 
+pfc_signatures$rpkm_all = signatures %>% 
+    .[rownames(.) %in% length$ensembl_gene_id,] %>%
+    rpkm(., length$gene_length) %>% 
+    .[which(apply(., 1, max) > exp_thresh),]
 
 
+# 2) All CT only Adult and fetal stages 
+pfc_signatures$rpkm_fetal_adult = signatures %>% 
+    .[rownames(.) %in% length$ensembl_gene_id,] %>%
+    dplyr::select(contains(c("Fetal", "Adult"))) %>%
+    rpkm(., length$gene_length) %>% 
+    .[which(apply(., 1, max) > exp_thresh),]
 
+# 3) pan neuronal - all stages
+pfc_signatures$rpkm_panNeuro = pan_neuronal_signatures %>% 
+    .[rownames(.) %in% length$ensembl_gene_id,] %>%
+    rpkm(., length$gene_length) %>% 
+    .[which(apply(., 1, max) > exp_thresh),]
+
+# 4) pan neuronal -- adult and fetal stages
+pfc_signatures$rpkm_panNeuro_fetal_adult = pan_neuronal_signatures %>% 
+    .[rownames(.) %in% length$ensembl_gene_id,] %>%
+    dplyr::select(contains(c("Fetal", "Adult"))) %>%
+    rpkm(., length$gene_length) %>% 
+    .[which(apply(., 1, max) > exp_thresh),]
+
+# 5) all neuro - all stages 
+pfc_signatures$rpkm_all_neuro = all_neuro %>% 
+    .[rownames(.) %in% length$ensembl_gene_id,] %>%
+    rpkm(., length$gene_length) %>% 
+    .[which(apply(., 1, max) > exp_thresh),]
+
+# 6) all neuro - fetal and adult 
+pfc_signatures$rpkm_all_neuro_fetal_adult = all_neuro %>% 
+    .[rownames(.) %in% length$ensembl_gene_id,] %>%
+    dplyr::select(contains(c("Fetal", "Adult"))) %>%
+    rpkm(., length$gene_length) %>% 
+    .[which(apply(., 1, max) > exp_thresh),]
+
+unique(colnames(signatures))
+colnames(all_neuro)
+ct.df
+save(pfc_signatures, file= "../../Results/signatures/pfc_signatures.Rda")
+
+pfcc_signatu
 

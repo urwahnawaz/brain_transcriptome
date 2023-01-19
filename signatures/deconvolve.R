@@ -10,12 +10,16 @@ prenatal = bspan.md %>% dplyr::filter(Period == "Prenatal" & Regions == "Cortex"
 
 prenatal.exp = bspan.exp %>% dplyr::select(prenatal$SampleID)
 
+pfc_signatures$rpkm_all_neuro
 
 
-
-common_genes = intersect(rownames(prenatal.exp), rownames(pfc_signatures$rpkm))
+## all neurons
+common_genes = intersect(rownames(prenatal.exp), rownames(pfc_signatures$rpkm_all_neuro))
 prenatal.exp <- prenatal.exp[pmatch(common_genes, rownames(prenatal.exp)), ]
-expression.rpkm <- pfc_signatures$rpkm_all[pmatch(common_genes, rownames(pfc_signatures$rpkm_all)), ]
+prenatal.exp
+
+expression.rpkm <- pfc_signatures$rpkm_all_neuro[pmatch(common_genes, rownames(pfc_signatures$rpkm_all_neuro)), ]
+
 
 y <- cbind(expression.rpkm, prenatal.exp)
 y <- normalizeBetweenArrays(y)
@@ -23,7 +27,7 @@ y <- t(y)
 
 
 
-annot = colnames(signatures) %>% 
+annot = colnames(all_neuro) %>% 
     as.data.frame() %>% 
     set_colnames("Sample") %>% 
     mutate(Cell_type = gsub("\\..*", "", Sample))
@@ -36,7 +40,6 @@ ps = lapply(1:length(all_ct_age), function(i) {
 })
 
 names(ps) = all_ct_age
-
 
 marker_list = find_markers(y,pure_samples=ps,data_type="rna-seq",marker_method='ratio')
 
@@ -61,7 +64,7 @@ colnames(plot_data) <- c("Sample", "Cell Type", "Proportion")
 
 plot_data$Proportion <- as.numeric(plot_data$Proportion)
 
-pdf("/home/neuro/Documents/Brain_integrative_transcriptome/Results/signatures/dtangle_prenatal_cortex_filter.pdf")
+pdf("/home/neuro/Documents/Brain_integrative_transcriptome/Results/signatures/dtangle_prenatal_cortex_all_neuro.pdf")
 for (ct in unique(annot$Cell_type)){
    data = plot_data %>% 
         dplyr::filter(str_detect(`Cell Type`, ct)) %>% 
