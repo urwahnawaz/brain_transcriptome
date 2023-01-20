@@ -51,12 +51,27 @@ bspan.excel = read_excel("../../Annotations_and_updates/BrainSpan-additional.xls
 
 
 
+
 joined = bspan.annot %>% 
   left_join(.,bspan.excel, by = "colname", keep = TRUE)
+
+dim(joined)
+colnames(joined)
+pdf("../../Results/mRIN/BrainSpan_RIN_vs_mRIN.pdf", height = 6, width = 6)
+joined %>% 
+  ggscatter(x="RIN", y ="mRIN", cor.coef = TRUE, add = "reg.line", 
+            conf.int = TRUE, add.params = list(color = "blue",
+                                               fill = "lightgray")) + 
+  theme_bw() + geom_hline(yintercept = -0.033, linetype="dashed") +
+  geom_vline(xintercept = 7, linetype="dashed", color = "red") + ggtitle("BrainSpan RIN vs mRIN")
+dev.off()
 
 bspan.excel.2 = read_excel("../../Annotations_and_updates/BrainSpan-additional.xlsx", sheet =1, col_names = TRUE) %>% 
   as.data.frame() %>% mutate_at(.vars="Internal ID", .funs = gsub, pattern = "\\.", replacement = "\\_") %>% 
   rename("Braincode" = "External ID") 
+dim(bspan.excel.2)
+
+
 
 
 joined = merge(joined, bspan.excel.2, by = "Braincode")
@@ -65,5 +80,23 @@ joined %<>% dplyr::select(-c("Age.y", "colname.y", "colname.x", "Gender", AllenI
   rename("Ethnicity"="Ethn." )
 
 
+dim(joined)
 
 write.csv(joined, "../../Annotations_and_updates/BrainSpan-metadata-updated.csv")
+
+
+### single nucleus data cleaning and preprocessing 
+read.csv("../../Data/SN Formatted /Velmeshev-metadata.csv", header= TRUE) %>% 
+  mutate(Age = paste0(AgeNumeric, " yrs")) %>% 
+  mutate(AgeIntervals = add_feature(.$Age, age_intervals),
+         Regions = add_feature(.$StructureAcronym, regions)) %>% 
+  apply(.,2,as.character) %>% 
+  write.csv(., "../../Data/SN Formatted /Velmeshev-metadata_updated.csv")
+
+Vel = read.csv("../../Data/SN Formatted /Velmeshev-metadata_updated.csv", header=TRUE)
+head(Vel)
+table(Vel$AgeIntervals)
+
+HCA =read.csv("../../Data/SN Formatted /HCA-metadata_fixed.csv", header= TRUE) 
+table(HCA$region)
+dim(HCA)

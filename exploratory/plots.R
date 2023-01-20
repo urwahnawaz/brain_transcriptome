@@ -42,10 +42,10 @@ for (f in directory){
 
 
 
-bspan.md = read.csv("../../Data/FormattedData/BrainSpan/BrainSpan-metadata.csv")
-bseq.md = read.csv("../../Data/FormattedData/BrainSeq/BrainSeq-metadata.csv")
-gtex.md = read.csv("../../Data/FormattedData/Gtex/GTEx-metadata.csv")
-pe.md = read.csv("../../Data/FormattedData/PsychEncode/PsychEncode-metadata.csv", header=TRUE)
+bspan.md = read.csv("../../Data/FormattedData/BrainSpan-metadata.csv")
+bseq.md = read.csv("../../Data/FormattedData/BrainSeq-metadata.csv")
+gtex.md = read.csv("../../Data/FormattedData/GTEx-metadata.csv")
+pe.md = read.csv("../../Data/FormattedData/PsychEncode-metadata.csv", header=TRUE)
 
 
 age = table(pe.md$AgeInterval) %>% melt()
@@ -66,8 +66,12 @@ age.bseq = summarise_stats(bseq.md, "BrainSeq")
 all_2 = rbind(age, age.bspan, age.bseq)
 
 all_2 = rbind(all_2, age)
+table(all_2$dataset)
 
-unique(all$AgeInterval)
+
+write.csv(all_2, "../../Results/Metadata/ageIntervals.csv")
+
+unique(all_2$AgeInterval)
 all_2$AgeInterval = factor(all_2$AgeInterval, levels = c("4-7pcw", "8-9pcw",
                                                               "10-12pcw", "13-15pcw", "16-18pcw",
                                                               "19-24pcw", "25-38pcw", "0-5mos",
@@ -82,6 +86,92 @@ all_2$Type = factor(all_2$Type, levels = c("BrainSeq_Sample", "Individual_BrainS
                                            "Sample", "Individual"))
 
 
+
+bspan.md %>% 
+  group_by(DonorID) %>% 
+  summarise(n = n())
+
+length(unique(bspan.md$DonorID))
+length(unique(bspan.md$SampleID))
+total_samples = data.frame(
+  Dataset = c("BrainSpan", "BrainSeq", "GTEx", "PsychEncode"), 
+  Samples = c(length(unique(bspan.md$SampleID)),length(unique(bseq.md$RNum)), 
+              length(unique(gtex.md$SampleID)), length(unique(pe.md$SampleID))), 
+  Individuals = c(length(unique(bspan.md$DonorID)), length(unique(bseq.md$DonorID)), 
+                  length(unique(gtex.md$DonorID)), length(unique(pe.md$SampleID)))
+)
+
+total_samples$Dataset = factor(total_samples$Dataset, 
+                               levels = c("PsychEncode",
+                                           "GTEx",
+                                           "BrainSpan", 
+                                           "BrainSeq"))
+
+
+total_samples %<>% melt %>% mutate(fill_col = paste(Dataset, variable, sep = "_"))
+write.csv(total_samples, "../../Results/Metadata/total_samples.csv")
+
+total= total_samples %>% 
+  melt() %>%
+  mutate(fill_col = paste(Dataset, variable, sep = "_")) %>%
+  ggplot(aes(x = Dataset, y =value, fill= fill_col)) +
+  geom_bar(position = "dodge",stat= "identity", color = "#B69E96") + 
+  xlab("") + ylab("") + theme_bw() +
+  theme(legend.position = "none",
+        strip.background =element_rect( color = "#E1DFDB"), 
+        axis.text.x = element_text(face="bold", size = 10),
+        axis.text.y = element_text(face="bold", size =10),
+        panel.border = element_rect(color = "black", fill = NA, size = 1)) + 
+  theme(strip.text = element_text(colour = 'white')) +
+  scale_fill_manual(values = c("#92373F","#A5635E", 
+                                        "#A76972","#BB9992", 
+                                        "#E89787", "#CA756E", 
+                                        "#AD9783", "#C1CCA6")) +
+                                          theme(panel.background = 
+                                                  element_rect(fill = "transparent",colour = NA), # or theme_blank()
+                                                plot.background = element_rect(fill = "transparent",colour = NA)) + coord_flip()
+  
+
+ggsave(file="../../Results/Metadata/TotalSamples.svg", plot = total, width=6.18, height = 5.6, 
+       units= "in", device="svg")
+
+
+## regional plots 
+
+regions = read.csv("../../Results/Metadata/bulk_regions.csv", header=TRUE)
+
+regions$AgeInterval =factor(regions$AgeInterval, levels = c("4-7pcw", "8-9pcw",
+                                                                               "10-12pcw", "13-15pcw", "16-18pcw",
+                                                                               "19-24pcw", "25-38pcw", "0-5mos",
+                                                                               "6-18mos", "19mos-5yrs", "6-11yrs",
+                                                                               "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs",
+                                                                               "50-59yrs", "60-69yrs", "70-79yrs", "80-89yrs", "90-99yrs"))
+
+regions %>% 
+  drop_na() %>%
+  group_by(Dataset,AgeInterval,Regions) %>% 
+  summarise(n = n()) %>% as.data.frame() %>%
+  ggplot(aes(x=AgeInterval, y=n, fill=Regions)) +
+  geom_bar(stat= "identity", color = "black") + 
+  facet_grid(Dataset ~ AgeInterval,scales = "free") + xlab("") + ylab("")  +
+  theme_classic() + 
+  theme(strip.text = element_text(colour = 'white')) +
+  theme(legend.position = "none",
+        axis.text.x=element_blank(),
+        strip.background =element_rect(fill="#B69E96", color = "black"), 
+        panel.border = element_rect(color = "black", fill = NA, size = 1)) + 
+  scale_fill_manual(values = c("#B15759","#C6A897", 
+                                        "#B3C48F","#E4A28A")) +
+                                          theme(panel.background = 
+                                                  element_rect(fill = "transparent",colour = NA), # or theme_blank()
+                                                plot.background = element_rect(fill = "transparent",colour = NA))
+
+
+B15759
+
+regions$StructureAcronym = gsub("^PFC", "DLPFC", regions$StructureAcronym)
+write.csv(regions, "../../Results/Metadata/bulk_regions.csv")
+table(regions$StructureAcronym)
 
 ## Single cell 
 
@@ -100,29 +190,69 @@ max(all$n)
 all_2 %<>% drop_na()
 all
 table(pe.md$AgeInterval)
-all_2 %>% as.data.frame() %>% 
+ageInterval =all_2 %>% as.data.frame() %>% 
+  drop_na() %>% 
   ggplot(aes(x= AgeInterval, y = n, fill =Type)) +
-  geom_bar(position = "dodge",stat= "identity") + 
+  geom_bar(position = "dodge",stat= "identity", color = "#B69E96") + 
   facet_grid(dataset ~ AgeInterval,scales = "free") + xlab("") + ylab("")  + theme_classic() +
   theme(legend.position = "none", axis.text.x=element_blank(),
-        strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
+        strip.background =element_rect(fill="#B69E96", color = "#E1DFDB"), 
         panel.border = element_rect(color = "#E1DFDB", fill = NA, size = 1)) + 
   theme(strip.text = element_text(colour = 'white')) +
-  scale_fill_manual(values = c("#573D5E","#88738D", 
-                               "#795761", "#D2A8B6", 
-                               "#7C5D4C", "#D8B3A2", 
-                               "#485B59", "#97BABB")) + 
+  scale_fill_manual(values = c("#92373F","#A5635E", 
+                                "#A76972","#BB9992",
+                               "#E89787", "#CA756E",
+                               "#AD9783", "#C1CCA6")) + 
   theme(
     panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
     plot.background = element_rect(fill = "transparent",colour = NA)
   )
 
+ageInterval
+ggsave(file="../../Results/Metadata/AgeInterval.svg", plot = ageInterval, width=16, height = 5.6, 
+       units= "in", device="svg")
 
+
+all_2 %>% drop_na() %>% 
+  ggplot(aes(x = dataset, y =n, fill= Type)) +
+  geom_bar(position = "dodge",stat= "identity") + 
+  xlab("") + ylab("") + theme_bw() +
+  theme(legend.position = "none",
+        strip.background =element_rect( color = "#E1DFDB"), 
+        panel.border = element_rect(color = "black", fill = NA, size = 1)) + 
+  theme(strip.text = element_text(colour = 'white')) +
+  scale_fill_manual(values = c("#92373F","#A5635E", 
+                                        "#A76972","#BB9992", 
+                                        "#E89787", "#CA756E", 
+                                        "#AD9783", "#C1CCA6")) +
+  theme(panel.background = 
+          element_rect(fill = "transparent",colour = NA), # or theme_blank()
+        plot.background = element_rect(fill = "transparent",colour = NA))
+
+all_2 %>% head()
+
+
+?ggsave
+"#C58C8B"
 
 c("")
 theme(strip.background =element_rect(fill="red"))
 
 bg_col = c("#8a616e")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -155,4 +285,3 @@ bseq_varPart["ENSG00000101040",] %>% melt() %>%
 
 
 
-bseq_varPart["ENSG00000116273",]

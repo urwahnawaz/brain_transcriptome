@@ -46,9 +46,9 @@ age_intervals[["25-38pcw"]] = c("25 pcw","26 pcw","35 pcw","37 pcw") # 5 25-38 p
 age_intervals[["0-5mos"]] = c("4 mos") # 6 Birth-5 months Early infancy
 age_intervals[["6-18mos"]] = c("10 mos", "1 yrs") # 7 6-18 months Late infancy
 age_intervals[["19mos-5yrs"]] = c("2 yrs","3 yrs","4 yrs") # 8 19 months-5 yrs Early childhood
-age_intervals[["6-11yrs"]] = c("8 yrs","11 yrs") # 9 6-11 yrs Late childhood
-age_intervals[["12-19yrs"]] = c("13 yrs","15 yrs","18 yrs","19 yrs") # 10 12-19 yrs Adolescence
-age_intervals[["20-29yrs"]] = c("21 yrs", "23 yrs")
+age_intervals[["6-11yrs"]] = c("6 yrs","7 yrs", "8 yrs","11 yrs") # 9 6-11 yrs Late childhood
+age_intervals[["12-19yrs"]] = c("12 yrs", "13 yrs","14 yrs", "15 yrs","16 yrs", "18 yrs","19 yrs") # 10 12-19 yrs Adolescence
+age_intervals[["20-29yrs"]] = c("20 yrs", "21 yrs","22 yrs",  "23 yrs")
 age_intervals[["30-39yrs"]] = c("30 yrs", "36 yrs", "37 yrs")
 age_intervals[["40-49yrs"]] = c("40 yrs")
 age_intervals[["50-49yrs"]]
