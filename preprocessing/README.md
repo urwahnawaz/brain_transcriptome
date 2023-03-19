@@ -10,7 +10,7 @@ git clone https://github.com/unawaz1996/brain_transcriptome.git
 cd brain_transcriptome/preprocessing 
 ```
 
-Open up Rstudio, or code editor of choice and ensure that you are working from the preprocessing direcotry 
+Open up Rstudio, or code editor of choice and ensure that you are working from the preprocessing directory 
 
 In Rstudio, open file 
 
@@ -18,49 +18,27 @@ In Rstudio, open file
 clean_and_format.R
 ```
 
-This file sources to several functions that are written in the pre-processing.R script. 
+This file sources to several functions that are written in the functions.R 
 
-Just add the location of directories of where the raw data is stored 
 
-# BrainSpan 
+Just add the location of directories to where 
+1) Raw data is stored 
+2) Output directory 
+3) Bulk dataset that's being formatted 
 
-To preprocess the BrainSpan data, you must ensure your directory of raw data contains 
+For example, to preprocess BrainSpan data, you must ensure that the BrainSpan Dir contains:
 
 * columns_metadata.csv
 * rows_metadata.csv
 * expression_matrix.csv
 
-```
-source("pre-processing.R")
-
+```{r}
 bspandir = file.path("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv")
 
-outdir = file.path("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted")
+outdir = file.path("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/")
 
-process_bspan(bspandir, outdir)
+clean_and_format(bspandir,"BrainSpan", outdir)
 ```
 
-This script will then save the BrainSpan-exp.cvs and BrainSpan-metadata.csv file into the results directory you provided. 
-
-
-# GTEx
-
-To preprocess the GTEx files, you must ensure you have the following files in your directory: 
-* GTEx_Analysis_v8_Annotations_SubjectPhenotypesDS.txt
-
-* GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt
-
-* GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz
-
-```
-source("pre-processing.R")
-
-gtex_dir = file.path("/home/neuro/Documents/BrainData/Bulk/GTEx")
-
-outDIR = file.path("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted")
-
-process_gtex(gtex_dir, outDIR)
-
-```
 
 

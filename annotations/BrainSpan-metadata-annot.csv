@@ -15,3 +15,9 @@ NA,AgeInterval,Yes,Phenotype
 NA,Diagnosis,Yes,Phenotype
 NA,Regions,Yes,Sample characteristics
 NA,mRIN,Yes,Sequencing metrics
+Hemisphere,Hemisphere,Yes, Sample characteristics
+RIN,RIN,Yes, Sequencing metrics
+Dissectionscore,Dissectionscore, Yes, Sequencing metrics
+PMI,PMI,Yes, Sequencing metrics
+pH,pH,Yes,Sequencing metrics
+Ethnicity,Ethnicity,Yes, Phenotype

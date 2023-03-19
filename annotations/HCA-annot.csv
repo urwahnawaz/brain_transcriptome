@@ -1,0 +1,22 @@
+﻿OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest,Type
+Variable,Variable,Yes,Classification
+specimen_type,specimen_type,No,Hide (uninformative)
+cluster,cluster,Yes,Cell-type
+class,class,Yes,Cell-type
+subclass,subclass,Yes,Cell-type
+full_genotype,full_genotype,No,Hide (uninformative)
+donor_sex,Sex,Yes,Phenotype
+region,StructureAcronym,Yes,Sample Characteristics
+cortical_layer,cortical_layer,Yes,Cell-type
+cell_type_accession,cell_type_accession,No,Hide (uninformative)
+cell_type_alias,cell_type_alias,Yes,Cell-type
+cell_type_alt_alias,cell_type_alt_alias,Yes,Cell-type
+cell_type_designation,cell_type_designation,Yes,Cell-type
+external_donor_name,external_donor_name,Yes,Phenotype
+outlier_call,outlier_call,No,Hide (uninformative)
+outlier_type,outlier_type,No,Hide (uninformative)
+MajorCelltype,MajorCelltype,Yes,Cell-type
+donor_age_days,Age,No,Hide (obsolete)
+AgeNumeric,AgeNumeric,Yes,Phenotype
+NA,AgeInterval,Yes,Phenotype
+NA,Regions,Yes,Sample Characteristics

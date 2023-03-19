@@ -1,7 +1,7 @@
 OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest,Type
 SAMPID,SampleID,Yes,Sample charactertics
 SMRIN,RIN,Yes,Sequencing metrics
-SMTSISCH,TotalIschemicTime,Yes,Sequencing metrics
+SMTSISCH,PMI,Yes,Sequencing metrics
 AGE,AgeInterval,Yes,Phenotype
 SEX,Sex,Yes,Phenotype
 SMATSSCR,AutolysisScore,Yes,Sample charactertics

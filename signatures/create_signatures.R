@@ -23,6 +23,9 @@ ct.df = data.frame("Major_CT" = c(rep("Glia", 4), rep("PN", 4), rep("IN_CGE", 3)
                               "PV", "PV_SCUBE3", "SST"), 
                 "Major_CT_all" = c(rep("Glia", 4), rep("Neuron", 10)) )
 
+dev.dt = data.frame("Period" = c("Prenatal", rep("Postnatal", 5)), 
+                    "Stage" = c("Fetal", "Neonatal","Infancy", "Childhood", "Adolescence", "Adult"))
+
 
 ## Get data and create matrices 
 directory = file.path("/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj")
@@ -217,10 +220,17 @@ pfc_signatures$rpkm_all_neuro_fetal_adult = all_neuro %>%
     rpkm(., length$gene_length) %>% 
     .[which(apply(., 1, max) > exp_thresh),]
 
+
+
+### final signatures 
+
 unique(colnames(signatures))
 colnames(all_neuro)
 ct.df
 save(pfc_signatures, file= "../../Results/signatures/pfc_signatures.Rda")
 
-pfcc_signatu
+
+
+pfc_signatures$rpkm_all_neuro
+### maybe after the pyschencode 
 

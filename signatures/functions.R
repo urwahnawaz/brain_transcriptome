@@ -151,4 +151,54 @@ create.seurat.signature <- function(w) {
 } 
 
 
+run_dtg = function(exp, sig){
+    
+    common_genes = intersect(rownames(exp), rownames(sig))
+    exp = exp[pmatch(common_genes, rownames(exp)),]
+    sig = sig[pmatch(common_genes, rownames(sig)),]
+    
+    y = cbind(exp, sig)
+    y = normalizeBetweenArrays(y)
+    y = t(y)
+    
+    
+    annot = colnames(sig) %>% 
+        as.data.frame() %>% 
+        set_colnames("Sample") %>% 
+        mutate(Cell_type = gsub("\\..*", "", Sample))
+    
+    of_interest = unique(annot$Sample)
+    
+    ps = lapply(1:length(of_interest), function(i) {
+        which(annot$Sample == of_interest[i])
+    })
+    
+    
+    names(ps) = of_interest
+    marker_list = find_markers(y,pure_samples=ps,data_type="rna-seq",marker_method='ratio')
+    
+    
+    q = .1
+    quantiles = lapply(marker_list$V,function(x)quantile(x,1-q))
+    K = length(ps)
+    n_markers = sapply(1:K,function(i){max(which(marker_list$V[[i]] > quantiles[[i]]))})
+    
+    
+    marks = marker_list$L
+    dc <- dtangle(y, pure_samples=ps, n_markers=n_markers, data_type = 'rna-seq', markers = marks)
+    final_est <- dc$estimates[(dim(sig)[2]+1):dim(y)[1],]
+    colnames(final_est) <-  of_interest
+    
+    
+    return(final_est)
+    
+}
+
+
+run_decon = function(m, s) {
+    res <- as.data.frame(DeconRNASeq(m, s, use.scale = TRUE)$out.all)
+    rownames(res) <- colnames(m)
+    return(res)
+}
+
 

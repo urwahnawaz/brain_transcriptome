@@ -1,9 +1,12 @@
 ## Figures 
 libs = c("dplyr", "ggplot2", "reshape2", "tools", "magrittr", "tibble", "readxl", 
-         "data.table", "scales", "tidyr", "reshape2", "stringr", "tidyverse", "readxl", "corrplot", "viridis")
+         "data.table", "scales", "tidyr", "reshape2", "stringr", "tidyverse", "readxl", "corrplot", "viridis", 
+         "sunburstR")
 libsLoaded <- lapply(libs,function(l){suppressWarnings(suppressMessages(library(l, character.only = TRUE)))})
 
-
+col_palette = c("#162424","#476460", "#7f9690", "#b8c0a9","#88947e","#373e36", "#9dac81","#7e979e", "#c9cdce", "#a4b4b1", 
+                "#8b8d8c","#ce9c83","#6d2010", "#9b4129","#dfb29b","#e0d7c8", "#f1e3e3","#e6c2a8","#d4ae87", "#f5c39e", 
+                "#543320", "#532414","#b87356","#cb8b70","#dca996","#f4d6be","#d1a88a","#be825d","#d6a392","#966f4e")
 
 summarise_stats = function(x, dataset)
   {
@@ -156,3 +159,213 @@ bseq_varPart["ENSG00000101040",] %>% melt() %>%
 
 
 bseq_varPart["ENSG00000116273",]
+
+
+### SN plots 
+hca= read.csv("../../../BrainData/single-cell/hca/HCA-metadata_fixed.csv", header=TRUE)
+vel = read.csv("../../../BrainData/single-cell/velmeshev/Velmeshev-metadata.csv", header= TRUE)
+
+### circle bar graph 
+
+
+# Create dataset
+data <- data.frame(
+    individual=paste( "Mister ", seq(1,60), sep=""),
+    group=c( rep('A', 10), rep('B', 30), rep('C', 14), rep('D', 6)) ,
+    value=sample( seq(10,100), 60, replace=T)
+)
+
+data %<>% arrange(group, value)
+
+# Set a number of 'empty bar' to add at the end of each group
+empty_bar <- 4
+to_add <- data.frame( matrix(NA, empty_bar*nlevels(data$group), ncol(data)) )
+colnames(to_add) <- colnames(data)
+to_add$group <- rep(levels(data$group), each=empty_bar)
+data <- rbind(data, to_add)
+data <- data %>% arrange(group)
+data$id <- seq(1, nrow(data))
+
+
+# Get the name and the y position of each label
+label_data <- data
+number_of_bar <- nrow(label_data)
+angle <- 90 - 360 * (label_data$id-0.5) /number_of_bar     # I substract 0.5 because the letter must have the angle of the center of the bars. Not extreme right(1) or extreme left (0)
+label_data$hjust <- ifelse( angle < -90, 1, 0)
+label_data$angle <- ifelse(angle < -90, angle+180, angle)
+
+
+data
+
+# Make the plot
+# Make the plot
+p <- ggplot(data, aes(x=as.factor(id), y=value, fill=group)) +       # Note that id is a factor. If x is numeric, there is some space between the first bar
+    geom_bar(stat="identity", alpha=0.5) +
+    ylim(-100,120) +
+    theme_minimal() +
+    theme(
+        legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        plot.margin = unit(rep(-1,4), "cm") 
+    ) +
+    coord_polar() + 
+    geom_text(data=label_data, aes(x=id, y=value+10, label=individual, hjust=hjust), color="black", fontface="bold",alpha=0.6, size=2.5, angle= label_data$angle, inherit.aes = FALSE ) 
+
+p
+
+
+### HCA 
+
+hca.CT = hca %>% group_by(subclass, MajorCelltype) %>% 
+    summarise(n = n()) %>% 
+    as.data.frame() %>% 
+    arrange(MajorCelltype, n)
+
+hca.CT$FinalPath[hca.CT$MajorCelltype =="Astrocytes" | hca.CT$MajorCelltype == "Microglia" | 
+                         hca.CT$MajorCelltype == "Oligodendrocytes" | hca.CT$MajorCelltype == "OPCs"] <- c("Neuroglia")
+
+
+hca.CT %>% 
+    mutate(path = paste(FinalPath,MajorCelltype, subclass, sep = "-")) %>% 
+    dplyr::select(path, n) %>%
+  #  mutate_at(.vars ="path", .funs = gsub, pattern = "\\^- -", replacement = "-")
+    sunburst(., legend = FALSE)
+
+hca.CT$FinalPath[grepl("Neurons", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Neurons")
+hca.CT$FinalPath[grepl("Vasculature", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Vasculature")
+hca.CT$MajorCelltype[hca.CT$MajorCelltype =="Astrocytes" | hca.CT$MajorCelltype == "Microglia" | 
+                     hca.CT$MajorCelltype == "Oligodendrocytes" |
+                         hca.CT$MajorCelltype == "OPCs" | hca.CT$MajorCelltype == "Vasculature"] <- NA
+
+
+
+hca.CT
+hca.CT$FinalPath[is.na(hca.CT$FinalPath)] <- " "
+
+
+
+table(vel.CT$MajorCelltype) %>% length()
+
+empty_bar <- 7
+to_add <- data.frame( matrix(NA, empty_bar*nlevels(vel.CT$group), ncol(vel.CT)) )
+colnames(to_add) <- colnames(vel.CT)
+to_add$MajorCelltype <- rep(levels(vel.CT$MajorCelltype), each=empty_bar)
+vel.CT <- rbind(vel.CT, to_add)
+vel.CT <- vel.CT %>% arrange(MajorCelltype)
+vel.CT$id <- seq(1, nrow(vel.CT))
+
+
+label_data <- vel.CT
+number_of_bar <- nrow(label_data)
+angle <- 90 - 360 * (label_data$id-0.5) /number_of_bar     # I substract 0.5 because the letter must have the angle of the center of the bars. Not extreme right(1) or extreme left (0)
+label_data$hjust <- ifelse( angle < -90, 1, 0)
+label_data$angle <- ifelse(angle < -90, angle+180, angle)
+
+
+ggplot(vel.CT, aes(x=as.factor(id), y=n, fill=MajorCelltype)) +       # Note that id is a factor. If x is numeric, there is some space between the first bar
+    geom_bar(stat="identity", alpha=0.5) +
+    ylim(-100,100) +
+    theme_minimal() + scale_y_log10() +
+    theme(
+        legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        plot.margin = unit(rep(-1,4), "cm") 
+    ) +
+    coord_polar() + 
+   geom_text(data=label_data, 
+              aes(x=id, y=n+10, label=subclass, hjust=hjust), 
+              color="black", fontface="bold",alpha=0.6, size=2.5, angle= label_data$angle, inherit.aes = FALSE ) 
+
+
+
+vel.CT =vel %>%  group_by(CellType, MajorCelltype) %>% 
+    summarise(n = n()) %>% 
+    as.data.frame() %>% 
+    arrange(MajorCelltype, n)
+
+
+
+
+empty_bar <- 9
+to_add <- data.frame( matrix(NA, empty_bar*nlevels(vel.CT$group), ncol(vel.CT)) )
+colnames(to_add) <- colnames(vel.CT)
+to_add$MajorCelltype <- rep(levels(vel.CT$MajorCelltype), each=empty_bar)
+vel.CT <- rbind(vel.CT, to_add)
+vel.CT <- vel.CT %>% arrange(MajorCelltype)
+vel.CT$id <- seq(1, nrow(vel.CT))
+
+
+label_data <- vel.CT
+number_of_bar <- nrow(label_data)
+angle <- 90 - 360 * (label_data$id-0.5) /number_of_bar     # I substract 0.5 because the letter must have the angle of the center of the bars. Not extreme right(1) or extreme left (0)
+label_data$hjust <- ifelse( angle < -90, 1, 0)
+label_data$angle <- ifelse(angle < -90, angle+180, angle)
+
+## convert the values to percentages?
+
+
+ggplot(vel.CT, aes(x=as.factor(id), y=n, fill=MajorCelltype)) +       # Note that id is a factor. If x is numeric, there is some space between the first bar
+    geom_bar(stat="identity", alpha=0.5) +
+    ylim(-10,6000) +
+    theme_minimal() +
+    theme(
+        legend.position = "none",
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        plot.margin = unit(rep(-1,10), "cm") 
+    ) +
+    coord_polar() + 
+    geom_text(data=label_data, 
+              aes(x=id, y=n+10, label=CellType, hjust=hjust), 
+              color="black", fontface="bold",alpha=0.6, size=2.5, angle= label_data$angle, inherit.aes = FALSE ) 
+
+
+## sunburstR plots
+
+data <- read.table("https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/11_SevCatOneNumNestedOneObsPerGroup.csv", header=T, sep=";")
+head(data)
+data[ which(data$value==-1),"value"] <- 1
+colnames(data) <- c("Continent", "Region", "Country", "Pop")
+
+# Reformat data for the sunburstR package
+data <- data %>%
+    filter(Continent != "") %>%
+    mutate(path = paste(Continent, Region, Country, sep="-")) %>%
+    dplyr::select(path, Pop)
+data
+
+
+
+vel.CT %>% 
+    mutate_at(.vars = "CellType", .funs=gsub, pattern = "\\-", replacement = " ") %>% 
+    mutate(path = paste( MajorCelltype, CellType, sep = "-")) %>% 
+    dplyr::select(path, n) %>% 
+    sunburst(., legend = FALSE)
+
+# Plot
+
+## make one subburst plot 
+p <- sunburst(data, legend=FALSE)
+p
+?sunburst
+
+sum(hca.CT$n)
+?colSums
+hca.CT %<>% 
+    mutate(percentage = (n/sum(n) * 100)) 
+
+
+sum(hca.CT$percentage)
+
+library(dplyr)
+eg= iris %>% 
+    slice(1:4) #%>% 
+    mutate(Test=Sepal.Length/45,Test=scales::percent(Test)) 
+
+iris
+

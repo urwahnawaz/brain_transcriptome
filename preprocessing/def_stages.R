@@ -105,7 +105,8 @@ regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE",
 
 regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
                         "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
-                        "M1C", "M1C-S1C", "S1C", "A1C", "ACC", "CTX", "DLPFC")
+                        "M1C", "M1C-S1C", "S1C", "A1C", "ACC", "CTX", "DLPFC", 
+                        "MTG", "CgG", "M1lm", "M1ul", "S1lm", "S1ul")
 
 regions[["Cerebellum"]] = c("CBC", "CB", "URL")
 

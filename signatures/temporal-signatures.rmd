@@ -1,15 +1,24 @@
 ---
+title: "Deconvolution"
+author: "Urwah Nawaz"
+date: "2023-01-03"
 output:
-  reprex::reprex_document:
-    venue: "gh"
-    advertise: FALSE
-    session_info: TRUE
-    style: TRUE
-    comment: "#;-)"
-    tidyverse_quiet: FALSE
-    std_out_err: TRUE
-knit: reprex::reprex_render
+  html_document:
+    code_folding: hide
+    toc: true
 ---
+
+```{css toc-content, echo = FALSE}
+#TOC {
+  right: 270px;
+  margin: 20px 0px 25px 0px;
+}
+
+.main-container {
+    margin-left: 200px;
+}
+```
+
 
 # Creating temporal deconvolution signatures 
 
@@ -20,74 +29,319 @@ source("functions.R")
 ```
 
 
-```{r celltypes}
-ct.df = data.frame("Major_CT" = c(rep("Glia", 4), rep("PN", 4), rep("IN_CGE", 3), rep("IN_MGE",3)),
-                "Subtype" = c("Astro", "Micro", "OPC", "Oligo", 
-                              "L2-3_CUX2", "L4_RORB", "L5-6_THEMIS", "L5-6_TLE4", 
-                              "VIP", "ID2", "LAMP5_NOS1", 
-                              "PV", "PV_SCUBE3", "SST"))
-
-ct.df %>% pander()
-```
-
 
 ```{r load-data}
-directory = file.path("/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj")
-cell_types = list()
-pattern = "/home/neuro/Documents/BrainData/single-cell/herring/major-dev-traj/major-dev-traj_"
-signatures =  list()
-for (files in directory){
-    ct <- list.files(files, full.names = TRUE, pattern = "\\pseudo-bulk-cts_min10.csv$")
+
+## signatures 
+load("../../Results/signatures/pfc_signatures.Rda")
+load("../../DeconRNAShiny/sigsBrain.rda")
+
+
+## Brain exp 
+bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv/Formatted/BrainSpan-exp.csv", row.names = 2, check.names = FALSE)[,-1]
+bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv/Formatted/BrainSpan-metadata.csv", row.names = 1, header= TRUE)
+```
+
+
+
+```{r run-dtg}
+
+## 1) subset signature for each stage and then run dtangle 
+stages = c("Fetal", "Neonatal", "Infancy","Adolescence", "Adult")
+
+dtg_res = list()
+for (stage in stages){
+    sigs_dev = pfc_signatures$rpkm_all_neuro %>% 
+        dplyr::select(contains(stage))
     
-    for (j in ct){
-        
-        ct_file = read.csv(j, header= TRUE, row.names = 1)
-        prefixes = unique(sub("\\..*", "", colnames(ct_file)))
-        name = gsub(pattern, "", j)
-        name = gsub("_pseudo-bulk-cts_min10.csv", "", name)
-        message("Now manipulating data for ", paste0(name))
-        
-        for (prefix in prefixes){
-            column = ct_file %>% dplyr::select(contains(prefix)) 
-            if (ncol(column) > 1) {
-                message("All good, keeping columns for ", paste0(prefix))
-                single_col = NULL
-            } else {
-                message(paste0(prefix), " only contains a single column")
-                #name = colnames(column)
-                single_col = ct_file %>% as.data.frame() %>% dplyr::select(colnames(column))
-                ct_file = ct_file %>% as.data.frame() %>%  dplyr::select(-colnames(column))
-            }
-            
-        }
-        
-        message("Now summing for ", paste0(name))
-        signature = sapply(prefixes, function(x)rowSums(ct_file[,startsWith(colnames(ct_file), x)]))
-        
-        
-        
-        if (is.null(single_col)) {
-        } else {
-            signature = data.frame(signature, single_col)
-        }
-        final_sig = signature 
-        final_sig %>% set_colnames(paste(name, colnames(final_sig), sep = "_"))
-         
-        ## Add all different cell types 
-        cell_types[[paste0(name)]] = signature 
-        signatures[[paste0(name)]] = final_sig
-     }
+    dev_res = run_dtg(bspan.exp,sigs_dev) %>%
+        as.data.frame() %>% 
+        mutate(Sig = stage)
     
+    dtg_res[[paste0(stage)]] = dev_res
 }
 
-```
 
 
-```{r filtering}
-exp_thresh <- 1
+## 2) run dtangle for MB
+
+dtg_res$MB = run_dtg(bspan.exp,sigsBrain$MB) %>%
+    as.data.frame() %>%
+    mutate(Sig = "MB")
 ```
+
 
 
 ```{r}
 
+## estimation vs good of fit - TO DO
+### Implies deconvolution isn't good
+## x axis (max of the different cell-types)
+#stage.md = bspan.md %>% dplyr::filter(Period == "Prenatal")
+
+#max_est_fetal = apply(dtg_res$Fetal[,-6],1, max)
+
+#max_est_fetal %<>% melt() %>% 
+#    as.data.frame() %>% 
+#    rownames_to_column("SampleID") %>% 
+#    dplyr::filter(SampleID %in% stage.md$SampleID) %>% 
+#    left_join(gof_res$Fetal_gof_res)
+
+#m= match(gof_res$Fetal_gof_res$SampleID, names(max_est_fetal))
+
+#cor(max_est_fetal[m], gof_res$Fetal_gof_res$r, use = 'pairwise.complete.obs') ## weak correlation 
+
+## something wrong with the deconvolution 
+### deconRNAseq - try 
+
 ```
+
+
+## Goodness of fit for just fetal and adult samples (matched)
+```{r}
+## GoF for Lister Signature 
+stages = c("Fetal", "Adult")
+gof_res = list()
+
+for (stage in stages){
+    if (stage == "Fetal") {
+        stage.md = bspan.md %>% dplyr::filter(Period == "Prenatal")
+        
+    } else {
+        stage.md = bspan.md %>% dplyr::filter(Period == "Postnatal")
+    }
+    
+    stage.exp = bspan.exp %>% dplyr::select(stage.md$SampleID)
+    dtg.stage =  dtg_res[[paste0(stage)]] %>% 
+        as.data.frame() %>% 
+        rownames_to_column("Sample") %>% 
+        dplyr::filter(Sample %in% colnames(stage.exp)) %>% 
+        column_to_rownames("Sample") %>% 
+        dplyr::select(-contains(".Sig"))
+    sigs_dev = pfc_signatures$rpkm_all_neuro %>% 
+        dplyr::select(contains(stage))
+    gof = write.gof(stage.exp, dtg.stage, sigs_dev) %>% 
+        as.data.frame() %>% 
+        mutate(sigs = paste0(stage, "_PFC_sig")) %>% 
+        rownames_to_column("SampleID") %>%
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\X", replacement = "") %>% 
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\.", replacement = "-") %>%
+        left_join(stage.md)
+    gof_res[[paste0(stage, "_gof_res")]] = gof
+    
+    ## MultiBrain 
+    
+    dtg.MB = dtg_res$MB %>% 
+        as.data.frame() %>% 
+        rownames_to_column("Sample") %>% 
+        dplyr::filter(Sample %in% colnames(stage.exp)) %>% 
+        column_to_rownames("Sample") %>% 
+        dplyr::select(-contains(".Sig"))
+    
+    gof.MB = write.gof(stage.exp, dtg.MB, sigsBrain$MB) %>% 
+        as.data.frame() %>% 
+        mutate(sigs = paste0(stage, "_MB_sig")) %>% 
+        rownames_to_column("SampleID") %>%
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\X", replacement = "") %>% 
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\.", replacement = "-") %>%
+        left_join(stage.md)
+    
+    gof_res[[paste0(stage, "_gof_MB")]] = gof.MB
+    
+}
+```
+
+
+
+```{r GoF-plots}
+
+gof_res$Fetal_gof_res %>%
+    rbind(., gof_res$Fetal_gof_MB) %>%
+    ggplot(aes(sigs, r, fill = sigs)) + geom_violin() +
+    geom_jitter() + theme_bw() + 
+    theme(legend.position = "none") + ggtitle("Goodness of fit for prenatal samples") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+
+
+```
+
+
+
+```{r}
+gof_res$Fetal_gof_res %>% 
+    ggplot(aes(Regions,r, fill = Regions)) + geom_violin() +
+    geom_jitter() + theme_bw() + 
+    theme(legend.position = "none") + ggtitle("Goodness of fit for prenatal samples, correlation with regions") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+
+```
+
+
+```{r}
+gof_res$Fetal_gof_res %>% 
+    ggplot(aes(Stage,r, fill = Stage)) + geom_violin() +
+    geom_jitter() + theme_bw() + 
+    theme(legend.position = "none") + ggtitle("Goodness of fit for prenatal samples, correlation with Stage") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+
+```
+
+
+
+```{r}
+gof_res$Fetal_gof_res %>% 
+    ggplot(aes(Stage,r, fill = Regions)) + geom_boxplot() +
+    geom_jitter() + theme_bw()  + ggtitle("Goodness of fit for prenatal samples, correlation with regions and stage") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+```
+
+```{r}
+head(gof_res$Fetal_gof_res)
+```
+
+```{r}
+gof_res$Adult_gof_res %>%
+    rbind(., gof_res$Adult_gof_MB) %>%
+    ggplot(aes(sigs, r, fill = sigs)) + geom_violin() +
+    geom_jitter() + theme_bw() + 
+    theme(legend.position = "none") + ggtitle("Goodness of fit for postnatal samples") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+
+```
+
+```{r}
+
+gof_res$Adult_gof_MB %>% 
+    ggplot(aes(Regions,r, fill = Regions)) + geom_violin() +
+    geom_jitter() + theme_bw()  + 
+    theme(legend.position = "none") +
+    ggtitle("Goodness of fit for prenatal samples, correlation with regions and stage") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+
+```
+
+```{r}
+
+gof_res$Adult_gof_MB$Stage = factor(gof_res$Adult_gof_MB$Stage, levels = c("s6", "s7",
+                                                              "s8", "s9", "s10",
+                                                              "s11", "s12", "s13"))
+
+
+
+gof_res$Adult_gof_MB %>% 
+    ggplot(aes(Stage,r, fill = Regions)) + geom_boxplot() +
+    geom_jitter() + theme_bw()  +
+    ggtitle("Goodness of fit for prenatal samples, correlation with regions and stage") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+```
+
+```{r}
+stage.md = bspan.md %>% dplyr::filter(Period == "Postnatal")
+
+max_est_adult = apply(dtg_res$Adult[,-6],1, max)
+
+max_est_adult ## dtanlge not doing well 
+
+max_est_fetal %<>% melt() %>% 
+    as.data.frame() %>% 
+    rownames_to_column("SampleID") %>% 
+    dplyr::filter(SampleID %in% stage.md$SampleID) %>% 
+    left_join(gof_res$Fetal_gof_res)
+
+m= match(gof_res$Fetal_gof_res$SampleID, names(max_est_fetal))
+
+cor(max_est_fetal[m], gof_res$Fetal_gof_res$r, use = 'pairwise.complete.obs')
+```
+
+
+
+## Rerunning this analysis, just with cortex samples 
+
+
+```{r}
+stages = c("Fetal", "Adult")
+gof_res_cortex = list()
+
+for (stage in stages){
+    if (stage == "Fetal") {
+        stage.md = bspan.md %>% dplyr::filter(Period == "Prenatal" & Regions == "Cortex")
+        
+    } else {
+        stage.md = bspan.md %>% dplyr::filter(Period == "Postnatal" & Regions == "Cortex")
+    }
+    
+    stage.exp = bspan.exp %>% dplyr::select(stage.md$SampleID)
+    dtg.stage =  dtg_res[[paste0(stage)]] %>% 
+        as.data.frame() %>% 
+        rownames_to_column("Sample") %>% 
+        dplyr::filter(Sample %in% colnames(stage.exp)) %>% 
+        column_to_rownames("Sample") %>% 
+        dplyr::select(-contains(".Sig"))
+    sigs_dev = pfc_signatures$rpkm_all_neuro %>% 
+        dplyr::select(contains(stage))
+    gof = write.gof(stage.exp, dtg.stage, sigs_dev) %>% 
+        as.data.frame() %>% 
+        mutate(sigs = paste0(stage, "_PFC_sig")) %>% 
+        rownames_to_column("SampleID") %>%
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\X", replacement = "") %>% 
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\.", replacement = "-") %>%
+        left_join(stage.md)
+    gof_res_cortex[[paste0(stage, "_gof_res")]] = gof
+    
+    ## MultiBrain 
+    
+    dtg.MB = dtg_res$MB %>% 
+        as.data.frame() %>% 
+        rownames_to_column("Sample") %>% 
+        dplyr::filter(Sample %in% colnames(stage.exp)) %>% 
+        column_to_rownames("Sample") %>% 
+        dplyr::select(-contains(".Sig"))
+    
+    gof.MB = write.gof(stage.exp, dtg.MB, sigsBrain$MB) %>% 
+        as.data.frame() %>% 
+        mutate(sigs = paste0(stage, "_MB_sig")) %>% 
+        rownames_to_column("SampleID") %>%
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\X", replacement = "") %>% 
+        mutate_at(.vars = "SampleID", .funs = gsub, pattern = "\\.", replacement = "-") %>%
+        left_join(stage.md)
+    
+    gof_res_cortex[[paste0(stage, "_gof_MB")]] = gof.MB
+    
+}
+
+
+```
+
+
+
+```{r}
+gof_res_cortex$Fetal_gof_res %>%
+    rbind(., gof_res_cortex$Fetal_gof_MB) %>%
+    ggplot(aes(sigs, r, fill = sigs)) + geom_violin() +
+    geom_jitter() + theme_bw() + 
+    theme(legend.position = "none") + ggtitle("Goodness of fit for prenatal samples") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+```
+```{r}
+gof_res_cortex$Fetal_gof_res %>%
+    ggplot(aes(StructureAcronym, r, fill = StructureAcronym)) + geom_violin() +
+    geom_jitter() + theme_bw() + 
+    theme(legend.position = "none") + ggtitle("Goodness of fit for prenatal samples") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+```
+
+
+```{r}
+gof_res_cortex$Adult_gof_res %>%
+    rbind(., gof_res_cortex$Adult_gof_MB) %>%
+    ggplot(aes(sigs, r, fill = sigs)) + geom_violin() +
+    geom_jitter() + theme_bw() + 
+    theme(legend.position = "none") + ggtitle("Goodness of fit for prenatal samples") +
+    ylab("Goodness of fit (r)") + xlab("Signatures")
+```
+
+* correlate gof with different brain regions? 
+* are the samples with a lower gof associated with different regions?
+*  adult brain samples? would it have better correlation?
+
+

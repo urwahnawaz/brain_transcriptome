@@ -77,7 +77,7 @@ clean_and_format = function(dir ,dataset, outdir){
     colnames(columns.metadata) = annot$BITColumnName[match(colnames(columns.metadata), annot$OriginalMetadataColumnName)]
     
     message("Adding additional metadata information")
-    
+  
     md = columns.metadata %>% 
       mutate(Stage = add_feature(.$Age, stages), 
              Regions = add_feature(.$StructureAcronym, regions), 
@@ -102,13 +102,50 @@ clean_and_format = function(dir ,dataset, outdir){
       md$Age[grepl("_yrs", md$Age)] %>%  str_remove("_yrs") %>% 
       as.numeric 
     
-    md %<>% mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))
+    md %<>% mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"), 
+                   colname = paste(DonorName, Age, StructureAcronym, sep = "_"))
+    
+    
+    ## Add from additional excel file retrived from Allen Brain Atlas  
+    md.excel = read_excel(file.path(dir, "BrainSpan-additional.xlsx"),sheet =2, col_names = TRUE, skip =1) %>% 
+      as.data.frame() %>% mutate_at(.vars = "AllenInstituteID", .funs = gsub, pattern = "\\.", replacement = "\\_") %>%
+      mutate_at(.vars = "Age", .funs = gsub, pattern = "PCW", replacement = "_pcw") %>% 
+      mutate_at(.vars = "Age", .funs = gsub, pattern = "M", replacement = "_mos") %>%
+      mutate_at(.vars = "Age", .funs = gsub, pattern = "Y", replacement = "_yrs") %>%
+      mutate_at(.vars = "Region/Area", .funs = gsub, pattern = "\\/", replacement = "-") %>% 
+      mutate(colname = paste(AllenInstituteID, Age, `Region/Area`, sep = "_")) %>% 
+      dplyr::select(-c(Agerange, Age, Description))
+    
+    ## Join the two files 
+    md = md %>% 
+      left_join(.,md.excel, by = "colname", keep = TRUE)
+    
+    
+    ## Process sheet 2
+    md.excel = read_excel(file.path(dir,"BrainSpan-additional.xlsx" ), sheet = 1, col_names = TRUE) %>% 
+      as.data.frame() %>% 
+      mutate_at(.vars="Internal ID", .funs = gsub, pattern = "\\.", replacement = "\\_") %>% 
+      dplyr::rename("Braincode" = "External ID")
+    
+    md = merge(md, md.excel, by ="Braincode") 
+    md %<>% 
+      dplyr::select(-c("Age.y", "colname.y", "colname.x", "Gender", AllenInstituteID,
+                     "Region/Area", "age_for_mRIN", "sample name", "Internal ID")) %>% 
+      dplyr::rename("Ethnicity"="Ethn.")  
+    
+    
+    md = md[!duplicated(md[,c('column_num')]),]
+    md %>% 
+      dplyr::arrange(column_num)
+    
+    
+    message("Now adding Sample Information on expression matrix")
     colnames(exp) <- md$SampleID
     rownames(exp) <- rows.metadata$ensembl_gene_id
     exp %<>% rownames_to_column("EnsemblID")
     
     
-    
+  
     
     
     
@@ -155,20 +192,18 @@ clean_and_format = function(dir ,dataset, outdir){
     m <- match(rownames(comp), rownames(w)) # they are
     md<- cbind(w, comp[m,])
     colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalMetadataColumnName)]
+    
+    
     # Adding features 
-    md %<>%
-      filter(Diagnosis == "Affective Disorder" |
-               Diagnosis == "Autism Spectrum Disorder" | 
-               Diagnosis == "Bipolar Disorder" |
-               Diagnosis == "Control" |
-               Diagnosis == "Schizophrenia") %>% 
-      mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
-             StructureAcronym = c("PFC")) %>%  
-      mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))  %>%
+    md %<>% mutate(Period = ifelse(.$Age > 0, "Postnatal", "Prenatal"), 
+                   StructureAcronym = gsub("HIPPO", "HIP", .$StructureAcronym),
+                   Diagnosis = gsub("Schizo", "Schizophrenia", .$Diagnosis)) %>%
+      mutate(Regions = add_feature(.$StructureAcronym, regions)) %>% 
       mutate(Age_rounded = as.character(sapply(na.omit(.$AgeNumeric), num_to_round))) %>% as.data.frame() %>%
       mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
-      mutate(Regions = c("Cortex")) %>% 
       dplyr::select(-Age_rounded) %>%
+      dplyr::rename("SampleID" = "RNum") %>%
+      dplyr::select("SampleID", everything()) %>%
       as.data.frame()
     
     exp = rse_gene@assays@.xData$data$rpkm
@@ -209,8 +244,8 @@ clean_and_format = function(dir ,dataset, outdir){
                Diagnosis == "Bipolar Disorder" |
                Diagnosis == "Control" |
                Diagnosis == "Schizophrenia") %>% 
-      mutate(Structure = c("Prefrontal Cortex"),  ## Adding name of structure
-             StructureAcronym = c("PFC")) %>%  
+      mutate(Structure = c("Dorsolateral Prefrontal Cortex"),  ## Adding name of structure
+             StructureAcronym = c("DLPFC")) %>%  
       mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))  %>%
       mutate(Age_rounded = as.character(sapply(.$AgeNumeric, num_to_round))) %>% as.data.frame() %>%
       mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 

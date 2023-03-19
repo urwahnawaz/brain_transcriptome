@@ -21,21 +21,28 @@ library(reshape2)
 
 ## Brainspan
 ```{r}
-bspan.exp <- read.csv("datasets/FormattedData/FormattedData/BrainSpan/BrainSpan-exp.csv", row.names =2)[,-1]
-head(bspan.exp)[1:10]
-colnames(bspan.exp) <- gsub("X", "", colnames(bspan.exp))
-bspan.meta <- read.csv("datasets/FormattedData/FormattedData/BrainSpan/BrainSpan-metadata-subset.csv")
-colnames(bspan.meta)
-dim(bspan.meta)
-dim(bspan.exp)
+#bspan.exp <- read.csv("datasets/FormattedData/FormattedData/BrainSpan/BrainSpan-exp.csv", row.names =2)[,-1]
+#head(bspan.exp)[1:10]
+#colnames(bspan.exp) <- gsub("X", "", colnames(bspan.exp))
+#bspan.meta <- read.csv("datasets/FormattedData/FormattedData/BrainSpan/BrainSpan-metadata-subset.csv")
+#colnames(bspan.meta)
+#dim(bspan.meta)
+#dim(bspan.exp)
+
+
+bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-exp.csv", row.names = 1, check.names = FALSE) %>%
+    column_to_rownames("EnsemblID")
+bspan.meta = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv")
 
 
 bspan.exp <- bspan.exp[apply(bspan.exp >= 1, 1, sum) >= 0.1*ncol(bspan.exp),]
 ```
 
 ```{r}
-colnames(bspan.meta)
-form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions)
+
+#form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions)
+
+form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions) 
 ```
 
 ```{r}
@@ -51,7 +58,7 @@ plotPercentBars(vp[1:10,])
 plotVarPart(vp)
 dim(vp)
 
-write.csv(vp, "BrainSpan-varPart.csv")
+#write.csv(vp, "BrainSpan-varPart.csv")
 ```
 
 
