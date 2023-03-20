@@ -107,7 +107,7 @@ clean_and_format = function(dir ,dataset, outdir){
     
     
     ## Add from additional excel file retrived from Allen Brain Atlas  
-    md.excel = read_excel(file.path(dir, "BrainSpan-additional.xlsx"),sheet =2, col_names = TRUE, skip =1) %>% 
+    md.excel = read_excel("../annotations/BrainSpan-additional.xlsx",sheet =2, col_names = TRUE, skip =1) %>% 
       as.data.frame() %>% mutate_at(.vars = "AllenInstituteID", .funs = gsub, pattern = "\\.", replacement = "\\_") %>%
       mutate_at(.vars = "Age", .funs = gsub, pattern = "PCW", replacement = "_pcw") %>% 
       mutate_at(.vars = "Age", .funs = gsub, pattern = "M", replacement = "_mos") %>%
@@ -122,7 +122,7 @@ clean_and_format = function(dir ,dataset, outdir){
     
     
     ## Process sheet 2
-    md.excel = read_excel(file.path(dir,"BrainSpan-additional.xlsx" ), sheet = 1, col_names = TRUE) %>% 
+    md.excel = read_excel("../annotations/BrainSpan-additional.xlsx", sheet = 1, col_names = TRUE) %>% 
       as.data.frame() %>% 
       mutate_at(.vars="Internal ID", .funs = gsub, pattern = "\\.", replacement = "\\_") %>% 
       dplyr::rename("Braincode" = "External ID")
@@ -202,7 +202,6 @@ clean_and_format = function(dir ,dataset, outdir){
       mutate(Age_rounded = as.character(sapply(na.omit(.$AgeNumeric), num_to_round))) %>% as.data.frame() %>%
       mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
       dplyr::select(-Age_rounded) %>%
-      dplyr::rename("SampleID" = "RNum") %>%
       dplyr::select("SampleID", everything()) %>%
       as.data.frame()
     
