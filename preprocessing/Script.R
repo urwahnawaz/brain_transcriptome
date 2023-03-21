@@ -1,126 +1,22 @@
-## In this script, mixtures are made from single-nucleus data
-
-################################################################################################################################ #
-## Setup ----
-
-## Generic
-rm(list=ls())
-options(stringsAsFactors = FALSE)
-
-## Set directory
-setwd("/Volumes/Data1/PROJECTS/Urwah/integration_datasets/SingleNucleus/")
-
 ## Functions and libraries
-source("/Volumes/Data1/PROJECTS/BrainCellularComposition//Scripts/Fun_Preprocessing.R")
-load(file = "/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Preprocessed/geneInfo.rda")
-load("/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Preprocessed/exonicLength.rda")
-library(Seurat)
-
-## Lists
-# to hold the dataset-level Seurat objects
-obj <- list() # to store data from...
-obj$VL <- list() # Velmeshev 2019
-obj$NG <- list() # Nagy 2020
-obj$CA <- list() # Hodge 2019
-
-
-## Key parameters
-# for seurat preprocessing
-min.cells <- 0 # during the initial load, a gene is excluded if in < 0 cells 
-min.features <- 200 # during the initial load, a barcode is excluded < 200 features are expressed
-min.depth <- 1000 # a barcode is excluded if nCount_RNA < this value
-max.depth.percentile <- 0.995 # a barcode is excluded if nCount_RNA > this percentile within the dataset
-max.mito <- 5
-min.celltype.n <- 0 # minimum number of members in a celltype for it to be kept. applied to anything used for creating mixtures (at this stage, Vel and HCA, but the former passes this criterion for all celltypes anyway...)
-
-# preprocessing options
-downsample <- FALSE
-downsample.n <- NA; if (downsample) downsample.n <- NA
-use.SCTransform <- FALSE
-
-
-## Functions
-## Function for downsampling the dataset to a set number of barcodes
-downsample.fun <- function(x, n = downsample.n) {
-  if (ncol(x) <= downsample.n) {
-    print("No downsampling performed (Reason: number of cells in dataset is already less than or equal to the downsampling number)")
-  } else {
-    sample <- sample(colnames(x), size = n, replace = FALSE)
-    x <- subset(x, cells = sample)  
-  }
-  return(x)
-}
-
-## General function for preprocessing sn data (normalise, filters, and scales)
-get.max.depth <- function(x) {
-  max.depth <- quantile(x@meta.data$nCount_RNA, probs = max.depth.percentile)
-}
-
-preprocess.fun <- function(x, run.downsample = downsample, SCTransform = use.SCTransform, max.depth = max.depth) {
-  # quantify mitochondrial reads
-  x[["percent.mito"]] <- PercentageFeatureSet(object = x, pattern = "^MT-")
-  
-  # filter to remove outlier nuclei: 
-  
-  x <- subset(x = x, subset = (nCount_RNA > min.depth) & (nCount_RNA < max.depth) & (percent.mito < max.mito))
-  
-  # downsample
-  if (run.downsample) { x <- downsample.fun(x) }
-  
-  # normalise expression levels
-  x <- NormalizeData(object = x, normalization.method = "LogNormalize", scale.factor = 10000) # standard parameters for Seurat
-  
-  # find variable genes (i.e. features)
-  x <- FindVariableFeatures(object = x, selection.method = "vst", nfeatures = 2000)
-  
-  
-  # further normalisation
-  if (use.SCTransform) {
-    x <- SCTransform(object = x, vars.to.regress = c("nCount_RNA", "percent.mito")) 
-  }
-  
-  # output
-  return(x)
-} 
-
-## Function for brief UMAP visualisation. x must be the output of preprocess.fun(x)
-UMAP.fun <- function(x, dims = 30) {
-  x <- ScaleData(object = x, vars.to.regress = c("nCount_RNA", "percent.mito")) 
-  x <- RunPCA(x, npcs = dims)
-  x <- FindNeighbors(object = x, dims = 1:dims) 
-  x <- FindClusters(object = x, resolution = 1) # "We find that setting this parameter between 0.4-1.2 typically returns good results for single-cell datasets of around 3K cells. Optimal resolution often increases for larger datasets"
-  x <- RunUMAP(object = x, dims = 1:dims)
-}
-
-
-
-## Function for library size correction
-  make.cpm <- function(x) {
-    for (j in 1:ncol(x)) {
-      x[,j] <- x[,j] / sum(x[,j]) * 10^6
-    }
-    return(x)
-  }
-
-## Function to reclassify subtypes to major cell-types
-rename <- function(old, new, m = meta) {
-  m$MajorCelltype[grep(old, m$MajorCelltype)] <- new
-  return(m)
-}
+source("snRNAseq-fun.R")
 
 ################################################################################################################################ #
 ## CA ----
 
 ## Read in
-# dat <- read.csv("/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Raw/human_MTG_2018-06-14_exon-matrix.csv")
-dat <- read.csv("matrix.csv") # contains all brain regions
+
+
+dir =  file.path("/home/neuro/Documents/BrainData/single-cell/hca/Raw")
+outfile = file.path("/home/neuro/Documents/BrainData/single-cell/hca/Processed/")
+dat <- read.csv(file.path(dir, "matrix.csv")) # contains all brain regions
 rownames(dat) <- dat$sample_name
 dat <- dat[,-1]
 # dat2 <- dat
 dat <- t(dat)  
   
 # add gene symbol
-meta <- read.csv("metadata.csv")
+meta <- read.csv(file.path(dir, "metadata.csv"))
 # dat <- dat[,-1] # remove an annotation column
 # rownames(dat) <- meta$gene
 
@@ -135,8 +31,6 @@ obj$CA <- CreateSeuratObject(counts = dat,
 # meta <- read.csv("/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Raw/human_MTG_2018-06-14_samples-columns.csv")
 # obj$CA$Individual <- meta$donor
 obj$CA$orig.celltype <- meta$cluster_label
-
-
 
 ## Remove cells with no class
 keep <- which(!(obj$CA$orig.celltype == ""))
@@ -153,7 +47,7 @@ dat <- make.cpm(dat)
 dat <- cbind(rownames(dat), dat)
 colnames(dat)[1] <- "Symbol"
 rownames(dat) <- 1:nrow(dat)
-write.csv(dat, file = "FormattedData/HCA-exp.csv", row.names = TRUE, col.names = TRUE, quote = FALSE)
+write.csv(dat, file = file.path(outfile, "HCA-exp.csv"), row.names = TRUE, col.names = TRUE, quote = FALSE)
 
 ## Process metadata
   # rename cell-types
@@ -170,21 +64,23 @@ write.csv(dat, file = "FormattedData/HCA-exp.csv", row.names = TRUE, col.names =
   meta <- rename("Non", "Unassigned Nonneuronal")
   
   # add further donor information from the metadata of HCA release 1
-  metaold <- read.csv("DownloadedData/HCA-metadata_raw.csv")
+  metaold <- read.csv(file.path(dir,"metadata_release1.csv"))
   m <- match(meta$external_donor_name_label, metaold$donor)
   meta$donor_age_days <- as.numeric(as.character(metaold$age_days[m]))
   meta$AgeNumeric <- meta$donor_age_days / 365
   
   # save
   
-  write.csv(meta, file = "FormattedData/HCA-metadata.csv", quote = FALSE, row.names = FALSE)
+  write.csv(meta, file = file.path(outfile, "HCA-metadata.csv"), quote = FALSE, row.names = FALSE)
 
 
 ################################################################################################################################ #
 ## Velmeshev ----
 
 ## Load
-dat <- Read10X("/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Raw/Velmeshev2019/")
+vel = file.path("/home/neuro/Documents/BrainData/single-cell/velmeshev/Velmeshev2019/")
+outfile = file.path("/home/neuro/Documents/BrainData/single-cell/velmeshev/FormattedData")
+dat <- Read10X(vel)
 obj$VL <- CreateSeuratObject(counts = dat,
                              min.cells = round(ncol(dat) / 100),
                              min.features = min.features,
@@ -192,7 +88,7 @@ obj$VL <- CreateSeuratObject(counts = dat,
 rm(dat)
 
 ## Annotate
-meta <- read.table("/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Raw/Velmeshev2019/meta.txt", sep = "\t", header = TRUE)
+meta <- read.table(file.path(vel, "meta.txt"), sep = "\t", header = TRUE)
 m <- match(colnames(obj$VL), meta$cell)
 
 obj$VL$orig.celltype <- meta$cluster[m]
@@ -211,7 +107,7 @@ dat <- make.cpm(dat)
 dat <- cbind(rownames(dat), dat)
 colnames(dat)[1] <- "Symbol"
 rownames(dat) <- 1:nrow(dat)
-write.csv(dat, file = "FormattedData/Velmeshev-exp.csv", row.names = TRUE, col.names = TRUE, quote = FALSE)
+write.csv(dat, file = file.path(outfile, "Velmeshev-exp.csv"), row.names = TRUE, col.names = TRUE, quote = FALSE)
 
 ## Save metadata
   # rename celltypes 
@@ -229,7 +125,7 @@ write.csv(dat, file = "FormattedData/Velmeshev-exp.csv", row.names = TRUE, col.n
   # save
   m <- match(colnames(obj$VL), meta$cell)
   meta <-  meta[m,]
-  write.csv(meta, file = "FormattedData/Velmeshev-metadata.csv", quote = FALSE, row.names = FALSE)
+  write.csv(meta, file = file.path(outfile, "Velmeshev-metadata.csv"), quote = FALSE, row.names = FALSE)
 
 ################################################################################################################################ #
 ## Nagy ----

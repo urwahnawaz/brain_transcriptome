@@ -12,8 +12,8 @@ require(preprocessCore)
 require(Seurat)
 
 ## And load other files...
-load("/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Preprocessed/exonicLength.rda") # exonic lengths of genes, used for gene length normalisation
-load("/Volumes/Data1/PROJECTS/BrainCellularComposition/Data/Preprocessed/geneInfo.rda") # information about gene symbols, ids, and type
+load("../data/exonicLength.rda") # exonic lengths of genes, used for gene length normalisation
+load("../data/geneInfo.rda") # information about gene symbols, ids, and type
 
 ##################################################################################################################################
 ## General data preprocessing functions
@@ -1172,4 +1172,98 @@ create.snmeRand <- function(nMix, # number of cells to mix per sample
     return(x)
   }
   
+  
+### Functions 
+  
+  ## Lists
+  # to hold the dataset-level Seurat objects
+  obj <- list() # to store data from...
+  obj$VL <- list() # Velmeshev 2019
+  obj$NG <- list() # Nagy 2020
+  obj$CA <- list() # Hodge 2019
+  
+  
+  ## Key parameters
+  # for seurat preprocessing
+  min.cells <- 0 # during the initial load, a gene is excluded if in < 0 cells 
+  min.features <- 200 # during the initial load, a barcode is excluded < 200 features are expressed
+  min.depth <- 1000 # a barcode is excluded if nCount_RNA < this value
+  max.depth.percentile <- 0.995 # a barcode is excluded if nCount_RNA > this percentile within the dataset
+  max.mito <- 5
+  min.celltype.n <- 0 # minimum number of members in a celltype for it to be kept. applied to anything used for creating mixtures (at this stage, Vel and HCA, but the former passes this criterion for all celltypes anyway...)
+  
+  # preprocessing options
+  downsample <- FALSE
+  downsample.n <- NA; if (downsample) downsample.n <- NA
+  use.SCTransform <- FALSE
+  
+  
+  ## Functions
+  ## Function for downsampling the dataset to a set number of barcodes
+  downsample.fun <- function(x, n = downsample.n) {
+    if (ncol(x) <= downsample.n) {
+      print("No downsampling performed (Reason: number of cells in dataset is already less than or equal to the downsampling number)")
+    } else {
+      sample <- sample(colnames(x), size = n, replace = FALSE)
+      x <- subset(x, cells = sample)  
+    }
+    return(x)
+  }
+  
+  ## General function for preprocessing sn data (normalise, filters, and scales)
+  get.max.depth <- function(x) {
+    max.depth <- quantile(x@meta.data$nCount_RNA, probs = max.depth.percentile)
+  }
+  
+  preprocess.fun <- function(x, run.downsample = downsample, SCTransform = use.SCTransform, max.depth = max.depth) {
+    # quantify mitochondrial reads
+    x[["percent.mito"]] <- PercentageFeatureSet(object = x, pattern = "^MT-")
+    
+    # filter to remove outlier nuclei: 
+    
+    x <- subset(x = x, subset = (nCount_RNA > min.depth) & (nCount_RNA < max.depth) & (percent.mito < max.mito))
+    
+    # downsample
+    if (run.downsample) { x <- downsample.fun(x) }
+    
+    # normalise expression levels
+    x <- NormalizeData(object = x, normalization.method = "LogNormalize", scale.factor = 10000) # standard parameters for Seurat
+    
+    # find variable genes (i.e. features)
+    x <- FindVariableFeatures(object = x, selection.method = "vst", nfeatures = 2000)
+    
+    
+    # further normalisation
+    if (use.SCTransform) {
+      x <- SCTransform(object = x, vars.to.regress = c("nCount_RNA", "percent.mito")) 
+    }
+    
+    # output
+    return(x)
+  } 
+  
+  ## Function for brief UMAP visualisation. x must be the output of preprocess.fun(x)
+  UMAP.fun <- function(x, dims = 30) {
+    x <- ScaleData(object = x, vars.to.regress = c("nCount_RNA", "percent.mito")) 
+    x <- RunPCA(x, npcs = dims)
+    x <- FindNeighbors(object = x, dims = 1:dims) 
+    x <- FindClusters(object = x, resolution = 1) # "We find that setting this parameter between 0.4-1.2 typically returns good results for single-cell datasets of around 3K cells. Optimal resolution often increases for larger datasets"
+    x <- RunUMAP(object = x, dims = 1:dims)
+  }
+  
+  
+  
+  ## Function for library size correction
+  make.cpm <- function(x) {
+    for (j in 1:ncol(x)) {
+      x[,j] <- x[,j] / sum(x[,j]) * 10^6
+    }
+    return(x)
+  }
+  
+  ## Function to reclassify subtypes to major cell-types
+  rename <- function(old, new, m = meta) {
+    m$MajorCelltype[grep(old, m$MajorCelltype)] <- new
+    return(m)
+  }
  
