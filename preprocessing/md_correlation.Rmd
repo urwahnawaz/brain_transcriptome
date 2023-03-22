@@ -1,0 +1,114 @@
+---
+title: "Metadata correlations and determining drivers of variation"
+author: "Urwah Nawaz"
+date: "2023-03-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background 
+
+BITHub has two aims 
+
+1) Allowing the comparison of expression of gene (or genes) of interest across multiple datasets 
+
+2) Allowing the comparison of expression against metadata variables in a given data-set
+
+For the second aim, it is vital that BITHub contains the relevant metadata annotations.
+BITHub aims to provide 3 types of metadata annotations for each dataset in the web-browser: 
+
+* Phenotype annotations: 
+
+
+* Sequencing metrics 
+
+* Sample characteristics 
+These annotations relate to how the samples were experimentally prepared
+
+In order to ensure the metadata information is displayed in a user-friendly, highly correlating metadata annotations will be removed and a subset will be used for the site. Additionally, we will also perform varianceParition analysis on the subsetted list. 
+
+
+
+# Set-up 
+
+```{r}
+source("functions.R")
+library(pander)
+```
+
+# Metedata correlations - Bulk data
+
+## Datasets
+
+### BrainSeq 
+
+
+```{r fig.height=8, fig.width=12, fig.cap="*Correlation plot of metadata annotations from BrainSeq phase II. The metadata annotations are clustered based on correlation*"}
+bseq = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata.csv", header = TRUE, row.names = 1)
+bseq %<>% 
+  dplyr::select(-c(FQCbasicStats, perSeqQual, SeqLengthDist,KmerContent))
+M = cor(data.matrix(bseq), use = "complete.obs")
+corrplot(M, order = 'AOE')
+```
+
+Prior to running `cor()` function, the FQCbasicStats, perSeqQual, SeqLengthDist and KmerContent columns were removed as they contained the same value, resulting in NA. 
+
+BrainSeq metadata annotations shows duplicate information in many of its columns (e.g SampleID, SAMPLEID), which are likely a result of running the pre-processing pipeline for BITHub. Additionally, certain columns contain very similar information thus resulting in high correlation. Several QC metrics for RNA-seq QC also provide redundant information and they will be removed for downstream analysis. 
+
+The final BrainSeq annotations will contain the following columns: 
+
+```{r}
+read.csv("../annotations/BrainSeq-metadata-annot.csv") %>%
+  dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
+  dplyr::select(-c(Include..Yes.No....Interest))
+```
+
+### BrainSpan
+
+```{r}
+bspan = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv", header = TRUE, row.names = 1)
+
+M = bspan %>% dplyr::select(-c("Diagnosis")) %>% data.matrix() %>% cor(.,use = "complete.obs")
+
+corrplot(M, order='AOE')
+```
+
+BrainSpan metadata annotations contain several duplicate and redundant columns that essentially contain the same information (e.g column_num, Age.x, Braincode). BrainSpan annotations were retrieved from multiple sources and as such, these duplicates are likely a result of different IDs they were stored under. 
+
+The following BrainSpan metadata annotations will be used for BITHub: 
+
+```{r}
+read.csv("../annotations/BrainSpan-metadata-annot.csv") %>%
+  dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
+  dplyr::select(-c(Include..Yes.No....Interest))
+```
+
+### GTEx
+
+```{r}
+gtex = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata.csv", header = TRUE, row.names = 1)
+
+M = cor(data.matrix(gtex))
+
+corrplot(M)
+
+
+```
+
+### PsychEncode 
+
+```{r fig.height=8, fig.width=12}
+pe = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-metadata.csv", header = TRUE, row.names = 1)
+
+M = pe %>% 
+  dplyr::select(-c(ageBiopsy, smellTestScore,smoker,Structure, StructureAcronym, Regions, Capstone_4, Adult.In7)) %>%
+  data.matrix() %>% cor(.,use ='pairwise.complete.obs' )
+
+
+corrplot(M)
+```
+
+#
