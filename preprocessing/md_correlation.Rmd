@@ -39,6 +39,7 @@ source("functions.R")
 library(pander)
 ```
 
+
 # Metedata correlations - Bulk data
 
 ## Datasets
@@ -52,6 +53,8 @@ bseq %<>%
   dplyr::select(-c(FQCbasicStats, perSeqQual, SeqLengthDist,KmerContent))
 M = cor(data.matrix(bseq), use = "complete.obs")
 corrplot(M, order = 'AOE')
+
+
 ```
 
 Prior to running `cor()` function, the FQCbasicStats, perSeqQual, SeqLengthDist and KmerContent columns were removed as they contained the same value, resulting in NA. 
@@ -61,9 +64,13 @@ BrainSeq metadata annotations shows duplicate information in many of its columns
 The final BrainSeq annotations will contain the following columns: 
 
 ```{r}
-read.csv("../annotations/BrainSeq-metadata-annot.csv") %>%
+bseq.annot = read.csv("../annotations/BrainSeq-metadata-annot.csv") %>%
   dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
   dplyr::select(-c(Include..Yes.No....Interest))
+
+bseq %<>% dplyr::select(contains(bseq.annot$BITColumnName))
+
+write.csv(bseq, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata-subset.csv")
 ```
 
 ### BrainSpan
@@ -81,22 +88,47 @@ BrainSpan metadata annotations contain several duplicate and redundant columns t
 The following BrainSpan metadata annotations will be used for BITHub: 
 
 ```{r}
-read.csv("../annotations/BrainSpan-metadata-annot.csv") %>%
+bspan.annot = read.csv("../annotations/BrainSpan-metadata-annot.csv") %>%
   dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
   dplyr::select(-c(Include..Yes.No....Interest))
+
+bspan %<>% dplyr::select(contains(bspan.annot$BITColumnName))
+
+write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata-subset.csv")
 ```
+
+
 
 ### GTEx
 
-```{r}
+```{r fig.height=12, fig.width=15}
 gtex = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata.csv", header = TRUE, row.names = 1)
 
 M = cor(data.matrix(gtex))
 
-corrplot(M)
+corrplot(M, method = 'number')
+
+```
+
+
+The GTEx metadata contains comprehensive annotations of sample, sequencing and phenotype attributes. However, for BITHub, we will remove metadata annotations that have a strong positive correlation. 
+
+The following metadata annotations will be used for GTEx: 
+
+
+```{r}
+
+gtex.annot = read.csv("../annotations/GTEx-metadata-annot.csv") %>%
+  dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
+  dplyr::select(-c(Include..Yes.No....Interest))
+
+gtex %<>% dplyr::select(contains(gtex.annot$BITColumnName))
+
+write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv")
 
 
 ```
+
 
 ### PsychEncode 
 
@@ -110,5 +142,21 @@ M = pe %>%
 
 corrplot(M)
 ```
+Information regarding Row_IDs, Row_Versions, Contributing Studes and Notes will be removed for BITHub. 
 
-#
+The following metadata annotations will be retained for PsychEncode:
+
+
+```{r}
+pe.annot = read.csv("../annotations/PsychEncode-metadata-annot.csv") %>%
+  dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
+  dplyr::select(-c(Include..Yes.No....Interest))
+
+pe %<>% dplyr::select(contains(pe.annot$BITColumnName))
+
+write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv")
+```
+
+# Determing drivers of variation 
+
+
