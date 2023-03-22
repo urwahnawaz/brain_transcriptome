@@ -2,7 +2,10 @@
 title: "Metadata correlations and determining drivers of variation"
 author: "Urwah Nawaz"
 date: "2023-03-22"
-output: html_document
+output: 
+  html_document:
+    code_folding: hide
+
 ---
 
 ```{r setup, include=FALSE}
@@ -68,6 +71,12 @@ bseq.annot = read.csv("../annotations/BrainSeq-metadata-annot.csv") %>%
   dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
   dplyr::select(-c(Include..Yes.No....Interest))
 
+
+bseq.annot %>% 
+  pander(justify = "lll",
+    style = "rmarkdown",
+    caption = "BrainSeq metadata annotations that will be used for BITHub ")
+
 bseq %<>% dplyr::select(contains(bseq.annot$BITColumnName))
 
 write.csv(bseq, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata-subset.csv")
@@ -91,6 +100,11 @@ The following BrainSpan metadata annotations will be used for BITHub:
 bspan.annot = read.csv("../annotations/BrainSpan-metadata-annot.csv") %>%
   dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
   dplyr::select(-c(Include..Yes.No....Interest))
+
+bspan.annot  %>% 
+  pander(justify = "lll",
+    style = "rmarkdown",
+    caption = "BrainSpan metadata annotations that will be used for BITHub ")
 
 bspan %<>% dplyr::select(contains(bspan.annot$BITColumnName))
 
@@ -124,6 +138,11 @@ gtex.annot = read.csv("../annotations/GTEx-metadata-annot.csv") %>%
 
 gtex %<>% dplyr::select(contains(gtex.annot$BITColumnName))
 
+gtex.annot %>% 
+  pander(justify = "lll",
+    style = "rmarkdown",
+    caption = "GTEx metadata annotations that will be used for BITHub ")
+
 write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv")
 
 
@@ -154,9 +173,86 @@ pe.annot = read.csv("../annotations/PsychEncode-metadata-annot.csv") %>%
 
 pe %<>% dplyr::select(contains(pe.annot$BITColumnName))
 
+pe.annot %>% 
+  pander(justify = "llr",
+    style = "rmarkdown",
+    caption = "PsychEncode metadata annotations that will be used for BITHub ")
+
 write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv")
 ```
 
 # Determing drivers of variation 
 
+* What is variance partition
 
+## BrainSeq 
+
+* Filtering - how many genes are left and why is this necessary 
+* Choosing of metadata variables 
+
+```{r}
+#bseq <- read.csv("datasets/FormattedData/FormattedData/BrainSeq/BrainSeq-exp.csv", row.names =2)[,-1]
+#ead(bseq)[1:10]
+#bseq.exp <- bseq[apply(bseq >= 1, 1, sum) >= 0.1*ncol(bseq),]
+```
+
+
+```{r}
+#bseq.md <- read.csv("datasets/FormattedData/FormattedData/BrainSeq/BrainSeq-metadata-subset.csv", row.names = 1)
+#head(bseq.md)
+```
+
+```{r}
+#form.bseq <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + RIN +  (1|Diagnosis) + mito_Rate + rRNA_rate + TotalNReads + MappingRate
+#+ Adult.Oligo + Adult.Microglia + Adult.Endothelial
+```
+
+
+```{r}
+#varPar.bseq <- fitExtractVarPartModel(bseq.exp, form.bseq, bseq.md)
+```
+
+
+## BrainSpan 
+
+* Filtering 
+* Choosing of metadata variables 
+
+```{r}
+#bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-exp.csv", row.names = 1, check.names = FALSE) #%>%
+#    column_to_rownames("EnsemblID")
+#bspan.meta = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv")
+
+
+#bspan.exp <- bspan.exp[apply(bspan.exp >= 1, 1, sum) >= 0.1*ncol(bspan.exp),]
+```
+
+```{r}
+
+#form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions)
+
+#form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions) 
+```
+
+```{r}
+#varPar.bspan <- fitExtractVarPartModel(bspan.exp, form.bspan, bspan.meta)
+```
+
+
+## GTEx 
+
+```{r}
+#gtex.exp <- read.csv("datasets/FormattedData/FormattedData/Gtex/GTEx-exp.csv", row.names = 1)
+#gtex.md <- read.csv("datasets/FormattedData/FormattedData/Gtex/GTEx-metadata-subset.csv")
+#colnames(gtex.md)
+#gtex.exp <- gtex.exp[apply(gtex.exp >= 1, 1, sum) >= 0.1*ncol(gtex.exp),]
+
+#gtex.form <- ~ TotalNReads + rRNA_rate + (1|TypeofBatch) + (1|DateofBatch) + (1|BSS_Collection_side_code) + (1|AgeInterval) + (1|Sex) + #(1|Regions) + IntergenicRate + RIN
+```
+
+```{r}
+#varPar.gtex <- fitExtractVarPartModel(gtex.exp, gtex.form, gtex.md)
+#vp <- sortCols(varPar.gtex)
+#plotVarPart(vp)
+#write.csv(vp, "GTEx-varPart.csv")
+```
