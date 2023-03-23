@@ -1,22 +1,32 @@
 ## Functions and libraries
 source("snRNAseq-fun.R")
 
+
+
+### INPUT DIRECTORIES 
+## HCA 
+hca =  file.path("/home/neuro/Documents/BrainData/single-cell/hca/Raw")
+hca.outfile = file.path("/home/neuro/Documents/BrainData/single-cell/hca/Processed/")
+
+
+## Velmeshev 
+
+vel = file.path("/home/neuro/Documents/BrainData/single-cell/velmeshev/Velmeshev2019/")
+vel.outfile = file.path("/home/neuro/Documents/BrainData/single-cell/velmeshev/FormattedData")
+
 ################################################################################################################################ #
 ## CA ----
 
 ## Read in
 
-
-dir =  file.path("/home/neuro/Documents/BrainData/single-cell/hca/Raw")
-outfile = file.path("/home/neuro/Documents/BrainData/single-cell/hca/Processed/")
-dat <- read.csv(file.path(dir, "matrix.csv")) # contains all brain regions
+dat <- read.csv(file.path(hca, "matrix.csv")) # contains all brain regions
 rownames(dat) <- dat$sample_name
 dat <- dat[,-1]
 # dat2 <- dat
 dat <- t(dat)  
   
 # add gene symbol
-meta <- read.csv(file.path(dir, "metadata.csv"))
+meta <- read.csv(file.path(hca, "metadata.csv"))
 # dat <- dat[,-1] # remove an annotation column
 # rownames(dat) <- meta$gene
 
@@ -47,7 +57,7 @@ dat <- make.cpm(dat)
 dat <- cbind(rownames(dat), dat)
 colnames(dat)[1] <- "Symbol"
 rownames(dat) <- 1:nrow(dat)
-write.csv(dat, file = file.path(outfile, "HCA-exp.csv"), row.names = TRUE, col.names = TRUE, quote = FALSE)
+write.csv(dat, file = file.path(hca.outfile, "HCA-exp.csv"), row.names = TRUE, col.names = TRUE, quote = FALSE)
 
 ## Process metadata
   # rename cell-types
@@ -71,15 +81,14 @@ write.csv(dat, file = file.path(outfile, "HCA-exp.csv"), row.names = TRUE, col.n
   
   # save
   
-  write.csv(meta, file = file.path(outfile, "HCA-metadata.csv"), quote = FALSE, row.names = FALSE)
+  write.csv(meta, file = file.path(hca.outfile, "HCA-metadata.csv"), quote = FALSE, row.names = FALSE)
 
 
 ################################################################################################################################ #
 ## Velmeshev ----
 
 ## Load
-vel = file.path("/home/neuro/Documents/BrainData/single-cell/velmeshev/Velmeshev2019/")
-outfile = file.path("/home/neuro/Documents/BrainData/single-cell/velmeshev/FormattedData")
+
 dat <- Read10X(vel)
 obj$VL <- CreateSeuratObject(counts = dat,
                              min.cells = round(ncol(dat) / 100),
@@ -107,7 +116,7 @@ dat <- make.cpm(dat)
 dat <- cbind(rownames(dat), dat)
 colnames(dat)[1] <- "Symbol"
 rownames(dat) <- 1:nrow(dat)
-write.csv(dat, file = file.path(outfile, "Velmeshev-exp.csv"), row.names = TRUE, col.names = TRUE, quote = FALSE)
+write.csv(dat, file = file.path(vel.outfile, "Velmeshev-exp.csv"), row.names = TRUE, col.names = TRUE, quote = FALSE)
 
 ## Save metadata
   # rename celltypes 
@@ -125,7 +134,7 @@ write.csv(dat, file = file.path(outfile, "Velmeshev-exp.csv"), row.names = TRUE,
   # save
   m <- match(colnames(obj$VL), meta$cell)
   meta <-  meta[m,]
-  write.csv(meta, file = file.path(outfile, "Velmeshev-metadata.csv"), quote = FALSE, row.names = FALSE)
+  write.csv(meta, file = file.path(vel.outfile, "Velmeshev-metadata.csv"), quote = FALSE, row.names = FALSE)
 
 ################################################################################################################################ #
 ## Nagy ----

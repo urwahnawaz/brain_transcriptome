@@ -1,37 +1,38 @@
 ---
 title: "Metadata correlations and determining drivers of variation"
 author: "Urwah Nawaz"
-date: "2023-03-22"
+date: "2023-03-16"
 output: 
   html_document:
     code_folding: hide
+    toc: true
 
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+    autodep = TRUE,
+    eval = TRUE,
+	echo = FALSE,
+	warning = FALSE,
+	message = FALSE
+)
 ```
 
 # Background 
 
-BITHub has two aims 
-
-1) Allowing the comparison of expression of gene (or genes) of interest across multiple datasets 
-
-2) Allowing the comparison of expression against metadata variables in a given data-set
-
-For the second aim, it is vital that BITHub contains the relevant metadata annotations.
-BITHub aims to provide 3 types of metadata annotations for each dataset in the web-browser: 
+To allow comparison of gene expression with a metadata variable of interest, BITHub contains comprehensive metadata annotations of the curated datasets. The three main categories of annotation are present in BITHub: 
 
 * Phenotype annotations: 
-
+Relating to the phenotype and origin of sample, including sex, donorIDs, age of donor, diagnosis and ethnicity
 
 * Sequencing metrics 
+These annotations relate to the quality of the RNA-seq samples and how they were experimentally prepared (if available).
 
 * Sample characteristics 
-These annotations relate to how the samples were experimentally prepared
+These include the charateristics of the samples. 
 
-In order to ensure the metadata information is displayed in a user-friendly, highly correlating metadata annotations will be removed and a subset will be used for the site. Additionally, we will also perform varianceParition analysis on the subsetted list. 
+In order to ensure the metadata information is displayed in a user-friendly manner, highly correlated metadata annotations will be removed and a subset will be used for the site.
 
 
 
@@ -40,17 +41,22 @@ In order to ensure the metadata information is displayed in a user-friendly, hig
 ```{r}
 source("functions.R")
 library(pander)
+library(gridExtra)
+library(variancePartition)
 ```
 
 
-# Metedata correlations - Bulk data
+# Metedata correlations - Bulk datasets
 
-## Datasets
+Correlation of metadata was prepared after processing the raw metadata and expression files. If you are interested in that part of the pipeline, please refer to the README.md in the Github repo. 
 
 ### BrainSeq 
 
+Prior to running `cor()` function, the `FQCbasicStats`, `perSeqQual`, `SeqLengthDist` and `KmerContent` columns were removed as they contained the same value, resulting in NAs. 
 
-```{r fig.height=8, fig.width=12, fig.cap="*Correlation plot of metadata annotations from BrainSeq phase II. The metadata annotations are clustered based on correlation*"}
+BrainSeq metadata annotations shows duplicate information in many of its columns (e.g `SampleID`, `SAMPLEID`), which are likely a result of running the pre-processing pipeline for BITHub. Additionally, certain columns contain very similar information thus resulting in high correlation. Several QC metrics for RNA-seq QC also provide redundant information and therefore these will be removed for downstream analysis.
+
+```{r fig.height=8, fig.width=8, fig.cap="*Correlation plot of metadata annotations from BrainSeq phase II. The metadata annotations are clustered based on correlation*"}
 bseq = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata.csv", header = TRUE, row.names = 1)
 bseq %<>% 
   dplyr::select(-c(FQCbasicStats, perSeqQual, SeqLengthDist,KmerContent))
@@ -60,11 +66,9 @@ corrplot(M, order = 'AOE')
 
 ```
 
-Prior to running `cor()` function, the FQCbasicStats, perSeqQual, SeqLengthDist and KmerContent columns were removed as they contained the same value, resulting in NA. 
 
-BrainSeq metadata annotations shows duplicate information in many of its columns (e.g SampleID, SAMPLEID), which are likely a result of running the pre-processing pipeline for BITHub. Additionally, certain columns contain very similar information thus resulting in high correlation. Several QC metrics for RNA-seq QC also provide redundant information and they will be removed for downstream analysis. 
 
-The final BrainSeq annotations will contain the following columns: 
+The final BrainSeq metadata annotations will contain the following columns: 
 
 ```{r}
 bseq.annot = read.csv("../annotations/BrainSeq-metadata-annot.csv") %>%
@@ -72,10 +76,7 @@ bseq.annot = read.csv("../annotations/BrainSeq-metadata-annot.csv") %>%
   dplyr::select(-c(Include..Yes.No....Interest))
 
 
-bseq.annot %>% 
-  pander(justify = "lll",
-    style = "rmarkdown",
-    caption = "BrainSeq metadata annotations that will be used for BITHub ")
+knitr::kable(bseq.annot)
 
 bseq %<>% dplyr::select(contains(bseq.annot$BITColumnName))
 
@@ -84,15 +85,16 @@ write.csv(bseq, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/
 
 ### BrainSpan
 
-```{r}
+BrainSpan metadata annotations contain several duplicate and redundant columns that essentially contain the same information (e.g `column_num`, `Age.x`, `Braincode`). BrainSpan annotations were retrieved from multiple sources, which may have led to these duplicates in annotations under different column names. 
+
+
+```{r fig.height=8, fig.width=12, fig.cap="*Correlation plot of metadata annotations from BrainSpan. The metadata annotations are clustered based on correlation*"}
 bspan = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv", header = TRUE, row.names = 1)
 
 M = bspan %>% dplyr::select(-c("Diagnosis")) %>% data.matrix() %>% cor(.,use = "complete.obs")
 
 corrplot(M, order='AOE')
 ```
-
-BrainSpan metadata annotations contain several duplicate and redundant columns that essentially contain the same information (e.g column_num, Age.x, Braincode). BrainSpan annotations were retrieved from multiple sources and as such, these duplicates are likely a result of different IDs they were stored under. 
 
 The following BrainSpan metadata annotations will be used for BITHub: 
 
@@ -101,10 +103,7 @@ bspan.annot = read.csv("../annotations/BrainSpan-metadata-annot.csv") %>%
   dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
   dplyr::select(-c(Include..Yes.No....Interest))
 
-bspan.annot  %>% 
-  pander(justify = "lll",
-    style = "rmarkdown",
-    caption = "BrainSpan metadata annotations that will be used for BITHub ")
+knitr::kable(bspan.annot)
 
 bspan %<>% dplyr::select(contains(bspan.annot$BITColumnName))
 
@@ -115,7 +114,9 @@ write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatte
 
 ### GTEx
 
-```{r fig.height=12, fig.width=15}
+The GTEx metadata contains comprehensive annotations of sample, sequencing and phenotype attributes. However, redundant and strongly correlated annotations, particularly for sequencing metrics, will be removed. 
+
+```{r fig.height=12, fig.width=15, fig.cap="*Correlation plot of metadata annotations of brain samples from GTEx. The correlations are plotted as numeric values to allow a btter overview of the data.*"}
 gtex = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata.csv", header = TRUE, row.names = 1)
 
 M = cor(data.matrix(gtex))
@@ -124,8 +125,7 @@ corrplot(M, method = 'number')
 
 ```
 
-
-The GTEx metadata contains comprehensive annotations of sample, sequencing and phenotype attributes. However, for BITHub, we will remove metadata annotations that have a strong positive correlation. 
+The above figure shows NA values on the correlation plot. This is primarily due to either missing values in certain columns, or no difference in values when performing correlation. Annotations which are highly correlated in the same category (e.g `ReadsMapped` and `TotalNReads`) will be removed. Additionally, information that contains too many missing annotations will also be removed, as these will impact the readability of the plots on BITHub. 
 
 The following metadata annotations will be used for GTEx: 
 
@@ -138,12 +138,9 @@ gtex.annot = read.csv("../annotations/GTEx-metadata-annot.csv") %>%
 
 gtex %<>% dplyr::select(contains(gtex.annot$BITColumnName))
 
-gtex.annot %>% 
-  pander(justify = "lll",
-    style = "rmarkdown",
-    caption = "GTEx metadata annotations that will be used for BITHub ")
+knitr::kable(gtex.annot)
 
-write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv")
+write.csv(gtex, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv")
 
 
 ```
@@ -151,7 +148,10 @@ write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTE
 
 ### PsychEncode 
 
-```{r fig.height=8, fig.width=12}
+PsychEncode metadata annotations contains limited information on the sequencing metrics. Additionally, there are some metadata annotations that show similar information and therefore are highly correlated. These include `Row_IDs`, `Row_Versions`, `Contributing Studies` and `Notes`. These columns will be removed for BITHub. 
+
+
+```{r fig.height=8, fig.width=12, fig.cap="*Correlation plot of metadata annotations from PsychEncode. Due to missing values in the correlation matrix, the annotations could not be clustered*"}
 pe = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-metadata.csv", header = TRUE, row.names = 1)
 
 M = pe %>% 
@@ -161,7 +161,6 @@ M = pe %>%
 
 corrplot(M)
 ```
-Information regarding Row_IDs, Row_Versions, Contributing Studes and Notes will be removed for BITHub. 
 
 The following metadata annotations will be retained for PsychEncode:
 
@@ -173,86 +172,244 @@ pe.annot = read.csv("../annotations/PsychEncode-metadata-annot.csv") %>%
 
 pe %<>% dplyr::select(contains(pe.annot$BITColumnName))
 
-pe.annot %>% 
-  pander(justify = "llr",
-    style = "rmarkdown",
-    caption = "PsychEncode metadata annotations that will be used for BITHub ")
+knitr::kable(pe.annot)
 
-write.csv(bspan, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv")
+write.csv(pe, file = "/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-metadata-subset.csv")
 ```
+
+
 
 # Determing drivers of variation 
 
-* What is variance partition
+A fundamental challenge in the analysis of complex RNA-seq datasets is determining the impact of sources of variation and their relationship with gene expression. To identify these impacts, we used `variancePartition`, an Bioconductor package, that uses mixed linear model to estimate the proportion of variance explained by selected covariates. Currently `variancePartition` has only been applied to the bulk RNA-seq datasets. 
+
+In `variancePartition` workflow, the contribution of highly correlated covariates is divided and therefore will result in smaller overall contributions to variation explained by these covariates. To ensure we are selecting covariates that are providing the most useful information about the data, we will also perform a canonical correlation analysis (CCA), which assesses the degree to which variables co-vary and contain the sample information. This is to ensure that variables that we selected based on the above correlations are indeed those that provide the most valueble insight into the data, 
 
 ## BrainSeq 
 
-* Filtering - how many genes are left and why is this necessary 
-* Choosing of metadata variables 
+Prior to running the `variancePartition` pipeline, we will remove lowly expressed genes from the downstream analysis as it will skew the analysis. We will use a generous expression cut-off of 1 RPKM in at least 10% of all samples from BrainSeq. This reduces the number of genes from 58,037 to 20,452 in the expression matrix.  
+
+
+```{r fig.height=6, fig.width=8, fig.cap= "Density of genes in BrainSeq with respect to expression before and after filtering for lowly expressed genes"}
+bseq.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-exp.csv", header= TRUE,
+                    check.names = FALSE, row.names = 1)
+
+bseq.before= log(bseq.exp + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("Before filtering") +
+    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+bseq.exp.filt <- bseq.exp[apply(bseq.exp >= 1, 1, sum) >= 0.1*ncol(bseq.exp),]
+
+
+bseq.after =log(bseq.exp.filt + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("After filtering") +
+    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+grid.arrange(bseq.before, bseq.after, ncol =2)
+```
+For the BrainSeq Phase II dataset, we want to ensure that metadata variables we select are the most indicative of the contribution of variation from each category. We will use `AgeNumeric`, `RIN`, `mito_Rate`, `rRNA_rate`, `TotalNReads`, `MappingRate`, `StructureAcronym`, `Sex` and `Diagnosis`. All these selected attributes reflect different aspects of the dataset and it will be useful for the user to which of these factors is driving the expression of their gene of interest. 
+
+
+```{r fig.height =5, fig.width=5, fig.cap="*Assessing correlation between covariates of interest from the BrainSeq data*"}
+form.bseq <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + RIN +  (1|Diagnosis) + mito_Rate + rRNA_rate + TotalNReads + MappingRate
+C.bseq = canCorPairs(form.bseq, bseq)
+plotCorrMatrix( C.bseq )
+
+```
+
+The correlation plot reveals that many of the selected covariates do not correlate highly within their respective category, and therefore we will feed these into the mixed linear model. 
+
 
 ```{r}
-#bseq <- read.csv("datasets/FormattedData/FormattedData/BrainSeq/BrainSeq-exp.csv", row.names =2)[,-1]
-#ead(bseq)[1:10]
-#bseq.exp <- bseq[apply(bseq >= 1, 1, sum) >= 0.1*ncol(bseq),]
+varPar.bseq <- fitExtractVarPartModel(bseq.exp.filt, form.bseq, bseq)
 ```
 
 
-```{r}
-#bseq.md <- read.csv("datasets/FormattedData/FormattedData/BrainSeq/BrainSeq-metadata-subset.csv", row.names = 1)
-#head(bseq.md)
+```{r fig.width=10, fig.cap="*variancePartition results for BrainSeq. Plot on right shows impact of covariates of interest on randomly selected genes whereaas left shows overall impact of covariates on all gene expression.*"}
+
+var.genes.bseq = plotVarPart(varPar.bseq)
+var.total.bseq =plotPercentBars(varPar.bseq[1:10,] )
+
+grid.arrange(var.genes.bseq, var.total.bseq , ncol = 2)
+
+write.csv(varPar.bseq, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-varPart.csv")
 ```
-
-```{r}
-#form.bseq <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + RIN +  (1|Diagnosis) + mito_Rate + rRNA_rate + TotalNReads + MappingRate
-#+ Adult.Oligo + Adult.Microglia + Adult.Endothelial
-```
-
-
-```{r}
-#varPar.bseq <- fitExtractVarPartModel(bseq.exp, form.bseq, bseq.md)
-```
-
 
 ## BrainSpan 
 
-* Filtering 
-* Choosing of metadata variables 
-
-```{r}
-#bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-exp.csv", row.names = 1, check.names = FALSE) #%>%
-#    column_to_rownames("EnsemblID")
-#bspan.meta = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv")
+We removed lowly expressed genes proir to running `variancePartition`. The same cut-off was applied to BrainSpan as BrainSeq, where genes < 1 RPKM in 1 in at least 10% of all samples were removed, resulting in 19,671 genes from 52,379 genes
 
 
-#bspan.exp <- bspan.exp[apply(bspan.exp >= 1, 1, sum) >= 0.1*ncol(bspan.exp),]
+```{r fig.height=6, fig.width=8, fig.cap= "*Density of genes in BrainSpan with respect to expression before and after filtering lowly expressed genes*"}
+bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-exp.csv", row.names = 1, check.names = FALSE) %>% column_to_rownames("EnsemblID") 
+
+bspan.before = log(bspan.exp + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("Before filtering") +
+    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+bspan.exp.filt <- bspan.exp[apply(bspan.exp >= 1, 1, sum) >= 0.1*ncol(bspan.exp),]
+
+
+bspan.after =log(bspan.exp.filt + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("After filtering") +
+    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+grid.arrange(bspan.before, bspan.after, ncol =2)
+```
+
+The selected metadata variables for BrainSpan include AgeNumeric, RIN, mRIN, pH, PMI, StructureAcronym, Regions and Period. 
+
+```{r fig.height =5, fig.width=5, fig.cap="*Assessing correlation between covariates of interest from the BrainSpan data*"}
+
+form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions) + RIN + mRIN + pH + PMI
+C.bspan = canCorPairs(form.bspan, bspan)
+plotCorrMatrix( C.bspan )
+
 ```
 
 ```{r}
-
-#form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions)
-
-#form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions) 
+varPar.bspan <- fitExtractVarPartModel(bspan.exp.filt, form.bspan, bspan)
 ```
 
-```{r}
-#varPar.bspan <- fitExtractVarPartModel(bspan.exp, form.bspan, bspan.meta)
-```
 
+```{r fig.width=10, fig.cap="*variancePartition results for BrainSpan. Plot on right shows impact of covariates of interest on randomly selected genes whereaas left shows overall impact of covariates on all expression.*"}
+var.genes.bspan = plotVarPart(varPar.bspan)
+var.total.bspan =plotPercentBars(varPar.bspan [1:10,] )
+
+grid.arrange(var.genes.bspan, var.total.bspan , ncol = 2)
+
+write.csv(varPar.bspan, file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-varPart.csv")
+```
 
 ## GTEx 
 
-```{r}
-#gtex.exp <- read.csv("datasets/FormattedData/FormattedData/Gtex/GTEx-exp.csv", row.names = 1)
-#gtex.md <- read.csv("datasets/FormattedData/FormattedData/Gtex/GTEx-metadata-subset.csv")
-#colnames(gtex.md)
-#gtex.exp <- gtex.exp[apply(gtex.exp >= 1, 1, sum) >= 0.1*ncol(gtex.exp),]
+Lowly expressed genes were removed from the GTEx expression matrix, where a cut-ff of 1 < TPM in less than 10% of the samples was applied. This resulted in 20,849 from  56,200 genes. 
 
-#gtex.form <- ~ TotalNReads + rRNA_rate + (1|TypeofBatch) + (1|DateofBatch) + (1|BSS_Collection_side_code) + (1|AgeInterval) + (1|Sex) + #(1|Regions) + IntergenicRate + RIN
+```{r fig.height=6, fig.width=8, fig.cap= "*Density of genes in GTEx with respect to expression before and after filtering lowly expressed genes*"}
+gtex.exp <- read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-exp.csv", row.names = 1)
+gtex.before = log(gtex.exp + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("Before filtering") +
+    labs(x = "logTPM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+gtex.exp.filt <- gtex.exp[apply(gtex.exp >= 1, 1, sum) >= 0.1*ncol(gtex.exp),]
+
+gtex.after =log(gtex.exp.filt + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("After filtering") +
+    labs(x = "logTPM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+grid.arrange(gtex.before, gtex.after, ncol =2)
+```
+
+
+```{r fig.height =5, fig.width=5, fig.cap="*Assessing correlation between covariates of interest from the GTEx data*"}
+gtex.form <- ~ TotalNReads + rRNA_rate + (1|TypeofBatch) + (1|DateofBatch) + (1|BSS_Collection_side_code) + (1|AgeInterval) + (1|Sex) + (1|Regions) + IntergenicRate + RIN
+
+C.gtex = canCorPairs(gtex.form, gtex)
+plotCorrMatrix(C.gtex)
 ```
 
 ```{r}
-#varPar.gtex <- fitExtractVarPartModel(gtex.exp, gtex.form, gtex.md)
-#vp <- sortCols(varPar.gtex)
-#plotVarPart(vp)
-#write.csv(vp, "GTEx-varPart.csv")
+varPar.gtex <- fitExtractVarPartModel(gtex.exp.filt, gtex.form, gtex)
+
+```
+
+```{r fig.width=10, fig.cap="*variancePartition results for GTEx. Plot on right shows impact of covariates of interest on randomly selected genes whereaas left shows overall impact of covariates on all expression.*"}
+var.genes.gtex = plotVarPart(varPar.gtex)
+var.total.gtex =plotPercentBars(varPar.gtex [1:10,] )
+
+grid.arrange(var.genes.gtex, var.total.gtex , ncol = 2)
+
+write.csv(varPar.gtex, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-varPart.csv")
+```
+
+
+## PsychEncode 
+
+```{r fig.height=6, fig.width=8, fig.cap= "*Density of genes in PsychEncode with respect to expression before and after filtering lowly expressed genes*}
+pe.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-exp.csv", row.names = 1, header=TRUE, check.names = FALSE) %>% 
+  column_to_rownames("EnsemblID")
+
+pe.before = log(pe.exp + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("Before filtering") +
+    labs(x = "logTPM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+pe.exp.filt <- pe.exp[apply(pe.exp >= 1, 1, sum) >= 0.1*ncol(pe.exp),]
+
+pe.after =log(pe.exp.filt + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("After filtering") +
+    labs(x = "logTPM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+grid.arrange(pe.before, pe.after, ncol =2)
+```
+
+
+```{r fig.height =5, fig.width=5, fig.cap="*Assessing correlation between covariates of interest from the PsychEncode data*"}
+pe.form <- ~ (1|Sex) + (1|Diagnosis) + AgeNumeric + (1|Ethnicity) + (1|Period)
+
+C.pe = canCorPairs(pe.form, pe)
+plotCorrMatrix(C.pe, margins = c(5, 5))
+```
+
+
+```{r}
+varPar.pe <- fitExtractVarPartModel(pe.exp.filt, pe.form, pe)
+
+```
+
+```{r fig.width=10, fig.cap="*variancePartition results for PsychEncode. Plot on right shows impact of covariates of interest on randomly selected genes whereaas left shows overall impact of covariates on all expression.*}
+var.genes.pe = plotVarPart(varPar.pe)
+var.total.pe =plotPercentBars(varPar.pe[1:10,] )
+
+grid.arrange(var.genes.pe, var.total.pe , ncol = 2)
+
+write.csv(varPar.pe, file = "/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-varPart.csv")
+
 ```
