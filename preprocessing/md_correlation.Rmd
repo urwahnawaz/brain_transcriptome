@@ -361,7 +361,7 @@ write.csv(varPar.gtex, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatt
 
 ## PsychEncode 
 
-```{r fig.height=6, fig.width=8, fig.cap= "*Density of genes in PsychEncode with respect to expression before and after filtering lowly expressed genes*}
+```{r fig.height=6, fig.width=8, fig.cap= "*Density of genes in PsychEncode with respect to expression before and after filtering lowly expressed genes*"}
 pe.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-exp.csv", row.names = 1, header=TRUE, check.names = FALSE) %>% 
   column_to_rownames("EnsemblID")
 
@@ -404,7 +404,7 @@ varPar.pe <- fitExtractVarPartModel(pe.exp.filt, pe.form, pe)
 
 ```
 
-```{r fig.width=10, fig.cap="*variancePartition results for PsychEncode. Plot on right shows impact of covariates of interest on randomly selected genes whereaas left shows overall impact of covariates on all expression.*}
+```{r fig.width=10, fig.cap="*variancePartition results for PsychEncode. Plot on right shows impact of covariates of interest on randomly selected genes whereaas left shows overall impact of covariates on all expression.*"}
 var.genes.pe = plotVarPart(varPar.pe)
 var.total.pe =plotPercentBars(varPar.pe[1:10,] )
 

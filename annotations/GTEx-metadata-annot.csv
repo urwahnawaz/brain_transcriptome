@@ -13,8 +13,8 @@ SMGEBTCHD,DateofGenotypeorExpressionBatch,Yes,Sample charactertics
 SMGEBTCHT,TypeofGenotypeorExpressionBatch,Yes,Sample charactertics
 SMCENTER,BSS_Collection_side_code,Yes,Sample charactertics
 SMPTHNTS,PathologyNotes,No,Sample charactertics
-SMTS,Region,No,Sample charactertics
-SMTSD,Structure,No,Sample charactertics
+SMTS,Regions,Yes,Sample charactertics
+SMTSD,StructureAcronym,Yes,Sample charactertics
 SMUBRID,UberonID,No,Sequencing metrics
 SMTSPAX,Time_spent_in_PAXgene_fixative,Yes,Sequencing metrics
 SMAFRZE,Samples_in_analysis_freeze,No,Sequencing metrics
@@ -66,3 +66,5 @@ SMDPMPRT,DuplicationRateMapped,Yes,Sequencing metrics
 SME2PCTS,Percentage_IntragenicEnd_2_Reads,Yes,Sequencing metrics
 SUBJID,DonorID,No,Phenotype
 DTHHRDY,HardyScale,Yes,Phenotype
+NA,Period,Yes,Phenotype
+NA,Diagnosis,Yes,Phenotype

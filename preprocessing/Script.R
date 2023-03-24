@@ -1,6 +1,6 @@
 ## Functions and libraries
 source("snRNAseq-fun.R")
-
+souce("def_stages.R")
 
 
 ### INPUT DIRECTORIES 
@@ -78,6 +78,10 @@ write.csv(dat, file = file.path(hca.outfile, "HCA-exp.csv"), row.names = TRUE, c
   m <- match(meta$external_donor_name_label, metaold$donor)
   meta$donor_age_days <- as.numeric(as.character(metaold$age_days[m]))
   meta$AgeNumeric <- meta$donor_age_days / 365
+  meta %<>% mutate(Age_rounded = as.character(sapply(na.omit(.$AgeNumeric), num_to_round))) %>%
+    mutate(AgeInterval = add_feature(.$Age_rounded, age_intervals)) %>% 
+    dplyr::select(-Age_rounded) %>% 
+    mutate(Regions = add_feature(.$region_label, regions))
   
   # save
   
