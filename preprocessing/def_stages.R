@@ -37,14 +37,35 @@ order.age <- c("8 pcw","9 pcw","12 pcw","13 pcw","16 pcw","17 pcw","19 pcw","21 
 
 age_intervals = list()
 #age_intervals[["8-9pcw"]] = c() # 1 4-7 pcw Embryonic
-age_intervals[["4-7pcw"]] = paste0(c(4:7), " pcw")
-age_intervals[["8-9pcw"]] = paste0(c(8:9), " pcw") # 2A 8-9 pcw Early prenatal
-age_intervals[["10-12pcw"]] = paste0(c(10:12), " pcw") # 2B 10-12 pcw Early prenatal
-age_intervals[["13-15pcw"]] = paste0(c(13:15), " pcw") # 3A 13-15 pcw Early mid-prenatal
-age_intervals[["16-18pcw"]] = paste0(c(16:18), " pcw") # 3B 16-18 pcw Early mid-prenatal
-age_intervals[["19-24pcw"]] = paste0(c(19:24), " pcw") # 4 19-24 pcw Late mid-prenatal
-age_intervals[["25-38pcw"]] = paste0(c(25:38), " pcw") # 5 25-38 pcw Late prenatal
-age_intervals[["39-40pcw"]] = paste0(c(39:40), " pcw") # 5 25-38 pcw Late prenatal
+age_intervals[["1-3pcw"]] = c(paste0(c(1:3), " pcw"), 
+                              paste("Carnegie Stage", c(9)))
+
+age_intervals[["4-7pcw"]] = c(paste0(c(4:7), " pcw"), 
+                              paste("Carnegie Stage", c(10:19)))
+
+age_intervals[["8-9pcw"]] = c(paste0(c(8:9), " pcw"), 
+                              paste("Carnegie Stage", c(20:23)), 
+                              paste(c(8:9), "post conception weeks")) # 2A 8-9 pcw Early prenatal
+
+age_intervals[["10-12pcw"]] = c(paste0(c(10:12), " pcw"),
+                                paste(c(10:12), "post conception weeks")) # 2B 10-12 pcw Early prenatal
+
+age_intervals[["13-15pcw"]] = c(paste0(c(13:15), " pcw"), 
+                                paste(c(13:15), "post conception weeks")) # 3A 13-15 pcw Early mid-prenatal
+
+age_intervals[["16-18pcw"]] = c(paste0(c(16:18), " pcw"), 
+                                paste(c(16:18), "post conception weeks")) # 3B 16-18 pcw Early mid-prenatal
+
+age_intervals[["19-24pcw"]] = c(paste0(c(19:24), " pcw"), 
+                                paste(c(19:24), "post conception weeks")) # 4 19-24 pcw Late mid-prenatal
+
+age_intervals[["25-38pcw"]] = c(paste0(c(25:38), " pcw"), 
+                                paste(c(25:38), "post conception weeks")) # 5 25-38 pcw Late prenatal
+
+age_intervals[["39-40pcw"]] = c(paste0(c(39:40), " pcw"), 
+                                paste(c(39:40), "post conception weeks")) # 5 25-38 pcw Late prenatal
+
+
 age_intervals[["0-5mos"]] = paste0(c(0:5), " mos") # 6 Birth-5 months Early infancy
 age_intervals[["6-18mos"]] = c(paste0(c(6:18)," mos"), "1 yrs") # 7 6-18 months Late infancy
 age_intervals[["19mos-5yrs"]] = c(paste0(c(19:20)," mos"), paste0(c(2:5), " yrs"))  # 8 19 months-5 yrs Early childhood

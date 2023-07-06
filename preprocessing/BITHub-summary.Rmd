@@ -1,0 +1,171 @@
+---
+title: "BITHub datasets"
+author: "Urwah Nawaz"
+date: "2023-06-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background 
+
+This documentation contains the summary of datasets that are currently hosted on BITHub. It also includes levels of information (gene, transcript, exon) and overall summary statistics. 
+
+```{r}
+source("functions.R")
+library(dplyr)
+library(purrr)
+library(recount3)
+```
+
+
+
+
+# Bulk datasets on BITHub 
+
+* PE 
+* GTEx 
+* BrainSpan
+* BrainSeq 
+
+```{r}
+bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata-subset.csv", 
+                    header=TRUE)
+bseq.md = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata-subset.csv", 
+                   header=TRUE)
+pe.md = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-metadata-subset.csv", 
+                 header=TRUE)
+gtex.md = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv", header=TRUE)
+```
+
+```{r}
+# Table showing total number of 
+# Samples
+# Age Intervals 
+# Regions 
+# Sample normalization
+
+```
+
+```{r}
+genres <- c("Action", "Adventure", "Science Fiction", "Thriller", "Western", "Drama", "Crime", "Comedy")
+
+movie_data <- tibble(
+  genres = map_chr(sample(5, 50, replace = TRUE), function(x){
+    sample(genres, size = x, replace = FALSE) %>%
+      paste(collapse = "|")
+  }),
+  vote_average = runif(length(genres), 0, 10)
+)
+
+summary
+
+bulk_datasets = list(bspan.md, bseq.md, gtex.md, pe.md)
+
+summary = data.frame(Dataset = c("BrainSpan"), 
+                     Samples = c(nrow(bspan.md)), 
+                     "Age Interval" = c(unique(bspan.md$AgeInterval) %>% 
+                                          paste(collapse = ",") ), 
+                     Regions = c(unique(bspan.md$StructureAcronym) %>% paste(collapse = ",")), 
+                     PMI = c("TRUE"), 
+                     RIN = c("TRUE"), 
+                     AgeNumeric = c("TRUE"))
+
+unique(bspan.md$StructureAcronym) %>% paste(collapse = ",")
+
+
+```
+
+## Proposal for new datasets 
+
+* Gandal et al 
+
+```{r}
+
+load("/home/neuro/Documents/Brain_integrative_transcriptome/Data/Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/data_provided")
+```
+
+```{r}
+dim(datMeta)
+head(datSeq)
+head(rsem_gene) ## gene counts 
+```
+* transcript level data for BrainSeq
+
+```{r}
+load("/home/neuro/Documents/Brain_integrative_transcriptome/Data/rse_tx_unfiltered.Rdata")
+```
+
+```{r}
+head(rse_tx)
+## BrainSeq contains transcript counts 
+```
+
+
+## Recount datasets 
+
+* GTEx 
+```{r}
+gtex = recount3::create_rse_manual(
+    project = "BRAIN",
+    project_home = "data_sources/gtex",
+    organism = "human",
+    annotation = "gencode_v26",
+    type = "gene"
+)
+
+
+rowData(gtex)
+gtex@assays@data@listData$raw_counts
+  
+```
+
+* Human developmental biology resource 
+```{r}
+hdbr = recount3::create_rse_manual(
+    project = "ERP016243",
+    project_home = "data_sources/sra",
+    organism = "human",
+    annotation = "gencode_v26",
+    type = "gene"
+)
+```
+
+*  Ramaker et al (2017)
+
+```{r}
+recount3::create_rse_manual(
+    project = "SRP073813",
+    project_home = "data_sources/sra",
+    organism = "human",
+    annotation = "gencode_v26",
+    type = "gene"
+)
+
+```
+
+
+* Cardoso-Moreira et al (2019)
+
+```{r}
+recount3::create_rse_manual(
+    project = "ERP109002",
+    project_home = "data_sources/sra",
+    organism = "human",
+    annotation = "gencode_v26",
+    type = "gene"
+)
+```
+
+
+# Single-nucleus datasets on BITHub
+
+* Velmheshev
+* HCA 
+
+## Proposal for new datasets 
+
+* Cerebellum dataset 
+

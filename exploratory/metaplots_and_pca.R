@@ -2,7 +2,7 @@
 ## Setup ----
 
 ## This script will perform a PCA of all four brain datasets
-setwd("/Volumes/Data1/PROJECTS/Urwah/integration_datasets/FormattedData")
+#setwd("/Volumes/Data1/PROJECTS/Urwah/integration_datasets/FormattedData")
 
 ## Functions
   # thresholding
@@ -16,29 +16,29 @@ setwd("/Volumes/Data1/PROJECTS/Urwah/integration_datasets/FormattedData")
 ## Load data ----    
     
 ## Load data
-  gtex <- read.csv("Gtex/GTEx-exp.csv", row.names = 1)
-  rownames(gtex) <- gtex$X
-  gtex <- gtex[,-1]
-  m.gtex <- read.csv("Gtex/GTEx-metadata.csv")
+  gtex <- read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-exp.csv", row.names = 1, check.names = FALSE)
+ # rownames(gtex) <- gtex$X
+  #gtex <- gtex[,-1]
+  m.gtex <- read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata.csv")
 
 
-span <- read.csv("BrainSpan/BrainSpan-exp.csv", row.names = 1)
+span <- read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-exp.csv", row.names = 1, check.names = FALSE)
 rownames(span) <- span$EnsemblID
 span <- span[,-1]
-m.span <- read.csv("BrainSpan/BrainSpan-metadata.csv")
+m.span <- read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv")
 
-seq <- read.csv("BrainSeq/BrainSeq-exp.csv")
-rownames(seq) <- seq$EnsemblID
+seq <- read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-exp.csv")
+rownames(seq) <- seq$X
 seq <- seq[,-1]
-m.seq <- read.csv("BrainSeq/BrainSeq-metadata.csv")
+m.seq <- read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-metadata.csv")
 
-pe <- read.csv("PsychEncode/PsychEncode-exp.csv", row.names = 1)
+pe <- read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-exp.csv", row.names = 1, check.names = FALSE)
 rownames(pe) <- pe$EnsemblID
 pe <- pe[,-1]
-m.pe <- read.csv("PsychEncode/PsychEncode-metadata.csv")
+m.pe <- read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-metadata.csv")
 m.pe <- m.pe[-which(duplicated(m.pe$SampleID)),]
 
-save(pe, seq, span, gtex, file = "Exp Matrices.rda")
+save(pe, seq, span, gtex, file = "/home/neuro/Documents/Brain_integrative_transcriptome/Data/Exp_Matrices_BIThub.Rda")
 
 ## Threshold
 gtex <- thresh(gtex)
@@ -50,7 +50,7 @@ pe <- thresh(pe)
 ## Combine data ----
 
 ## Combine into single expression matrix
-  rownames(gtex) <- sapply(strsplit(rownames(gtex), "\\."), "[", 1)  # for common formatting (this removes everything after the ".")
+  #rownames(gtex) <- sapply(strsplit(rownames(gtex), "\\."), "[", 1)  # for common formatting (this removes everything after the ".")
   common <- intersect(rownames(gtex), rownames(span))
   common <- intersect(common, rownames(seq))
   common <- intersect(common, rownames(pe))
@@ -67,10 +67,10 @@ m.pe$StructureAcronym <- "PFC"
 m.pe$DonorID <- 1:nrow(m.pe)
 m.seq$StructureAcronym <- m.seq$Structure
     
-    m.merge <- rbind(m.gtex[,c("DonorID", "SampleID", "AgeInterval", "Sex", "Period", "Structure", "StructureAcronym", "Regions")],
-                   m.span[,c("DonorID", "SampleID", "AgeInterval", "Sex", "Period", "Structure", "StructureAcronym", "Regions")],
-                   m.seq[,c("DonorID", "SampleID", "AgeInterval", "Sex", "Period", "Structure", "StructureAcronym", "Regions")],
-                   m.pe[,c("DonorID", "SampleID", "AgeInterval", "Sex", "Period", "Structure", "StructureAcronym", "Regions")])
+    m.merge <- rbind(m.gtex[,c("SampleID", "AgeInterval", "Sex", "Period", "Regions", "StructureAcronym", "Regions")],
+                   m.span[,c("SampleID", "AgeInterval", "Sex", "Period", "Regions", "StructureAcronym", "Regions")],
+                   m.seq[,c( "SampleID", "AgeInterval", "Sex", "Period", "Regions", "StructureAcronym", "Regions")],
+                   m.pe[,c( "SampleID", "AgeInterval", "Sex", "Period", "Regions", "StructureAcronym", "Regions")])
     m.merge$Study <- c(rep("GTEx", ncol(gtex)),
                        rep("BrainSpan", ncol(span)),
                        rep("BrainSeq", ncol(seq)),
@@ -83,7 +83,7 @@ m.seq$StructureAcronym <- m.seq$Structure
     m.merge$AgeInterval <- gsub(" ", "", m.merge$AgeInterval)
     
     # add "yrs" to the GTEx samples
-    m.merge$AgeInterval[which(m.merge$Study == "GTEx")] <- paste0(m.merge$AgeInterval[which(m.merge$Study == "GTEx")], "yrs")
+   # m.merge$AgeInterval[which(m.merge$Study == "GTEx")] <- paste0(m.merge$AgeInterval[which(m.merge$Study == "GTEx")], "yrs")
     
     # convert to sorted factor
     m.merge$AgeInterval <- factor(m.merge$AgeInterval, levels = levels(as.factor(m.merge$AgeInterval))[c(18, 2, 4, 5, 6, 9, 1, 15,7, 14, 3, 8, 10, 12, 13, 16, 17, 19, 20)])
@@ -96,7 +96,7 @@ m.seq$StructureAcronym <- m.seq$Structure
 ################################################################################################################################ #
 ## PCA ----
     
-## Normalise
+## Normalise ## Non-filtered data
   # create a quantile normalised version
   library(preprocessCore)
   q.merge <- normalize.quantiles(as.matrix(merge), copy = FALSE)
