@@ -104,31 +104,38 @@ order.period =c("Prenatal", "Postnatal")
 structure_acronym = list()
 
 structure_acronym[["AMY"]] = c("Brain - Amygdala")
-structure_acronym[["CB"]] = c("Brain - Cerebellum")
+structure_acronym[["CB"]] = c("Brain - Cerebellum", "cerebellum")
 structure_acronym[["HYP"]] = c("Brain - Hypothalamus")
 structure_acronym[["SNA"]] = c("Brain - Substantia nigra")
 structure_acronym[["ACC"]] = c("Brain - Anterior cingulate cortex (BA24)")
 structure_acronym[["CTX"]] = c("Brain - Cortex")
 structure_acronym[["NAC"]] = c("Brain - Nucleus accumbens (basal ganglia)")
-structure_acronym[["CGE"]] = c("Brain - Caudate (basal ganglia)")
+structure_acronym[["CGE"]] = c("Brain - Caudate (basal ganglia)", "basal ganglion")
 structure_acronym[["DLPFC"]] = c("Brain - Frontal Cortex (BA9)")
 structure_acronym[["PUT"]] = c("Brain - Putamen (basal ganglia)")
 structure_acronym[["CBC"]] = c("Brain - Cerebellar Hemisphere")
-structure_acronym[["HIP"]] = c("Brain - Hippocampus")
-structure_acronym[["SCI"]] = c("Brain - Spinal cord (cervical c-1)")
+structure_acronym[["HIP"]] = c("Brain - Hippocampus", "hippocampus")
+structure_acronym[["SCI"]] = c("Brain - Spinal cord (cervical c-1)", "spinal cord")
+structure_acronym[["TCx"]] = c("temporal lobe")
+structure_acronym[["MEDU"]] = c("medulla oblongata")
+structure_acronym[["PONS"]] = c("pons")
 
 
 ################### Defining regions ####################
 regions = list()
 
 regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE", 
-                           "MD", "STR", "SNA", "PUT", "HYP", "NAC")
+                           "MD", "STR", "SNA", "PUT", "HYP", "NAC", 
+                           "CP")
 
 regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
                         "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
                         "M1C", "M1C-S1C", "S1C", "A1C", "ACC", "CTX", "DLPFC", 
-                        "MTG", "CgG", "M1lm", "M1ul", "S1lm", "S1ul")
+                        "MTG", "CgG", "M1lm", "M1ul", "S1lm", "S1ul", 
+                        "FB", "FBF")
 
 regions[["Cerebellum"]] = c("CBC", "CB", "URL")
 
 regions[["Spinal Cord"]] = c("SCI")
+
+regions[["Brainstem"]] = c("MEDU", "PONS", "MB")
