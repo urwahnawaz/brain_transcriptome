@@ -1,7 +1,21 @@
 # Replicating GTEx heatmap for ZMYND8
 
 library(CePa)
-gtex.transcript =  read.table("/home/neuro/Documents/BrainData/Bulk/GTEx/GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz",  sep="\t", skip=2, header=TRUE)
+library(EnsDb.Hsapiens.v86)
+library(recount3)
+library(DT)
+library(dplyr)
+library(tidyr)
+source("functions.R")
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(corrplot)
+library(edgeR)
+library(pheatmap)
+library(viridis)
+
+#gtex.transcript =  read.table("/home/neuro/Documents/BrainData/Bulk/GTEx/GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz",  sep="\t", skip=2, header=TRUE)
 
 head(gtex.transcript)[1:10]
 
@@ -9,7 +23,7 @@ head(gtex.transcript)[1:10]
 
 gtex_trans = read.gct("/home/neuro/Documents/BrainData/Bulk/GTEx/GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz")
 colnames(gtex_trans ) <- gsub("\\.", "-", colnames(gtex_trans))
-
+gtex.bH.md.subset = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv", header=TRUE, check.names = FALSE)
 txdf = transcripts(EnsDb.Hsapiens.v86, return.type="DataFrame")
 tx2gene = as.data.frame(txdf[,c("gene_id", "tx_id")])
 
@@ -100,14 +114,16 @@ dim(zmynd8_heatmap)
 StructureAcronym
 
 
-average = with(md, setNames(StructureAcronym, SampleID))[names(zmynd8_heatmap)[col(zmynd8_heatmap)]]
+average_with_age = with(md, setNames(StructureAcronym, AgeInterval, SampleID))[names(zmynd8_heatmap)[col(zmynd8_heatmap)]]
 
 average_exp = tapply(unlist(zmynd8_heatmap), list(row(zmynd8_heatmap), average ), mean)
 
 rownames(average_exp) = rownames(zmynd8_heatmap)
 
-pheatmap(average_exp + 0.05, scale = "none", cluster_rows = TRUE, 
-         cluster_cols= FALSE)
+
+pheatmap(log(average_exp + 0.05), scale = "none", cluster_rows = FALSE, 
+         cluster_cols= FALSE,cellwidth = 20, cellheight = 20, border_color = "black", 
+         color= magma(10))
 
 
 a <- with(df_category, setNames(Category, Col_name))[names(df)[col(df)]]

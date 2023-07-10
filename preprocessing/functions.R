@@ -277,4 +277,10 @@ clean_and_format = function(dir ,dataset, outdir){
 }
 
 
+thresh <- function(x) {
+  y <- x > 1
+  keep <- rowSums(y) > (ncol(y) / 10)
+  return(x[keep,])
+}
+
 

@@ -27,6 +27,7 @@ library(pander)
 library(gridExtra)
 library(variancePartition)
 library(corrplot)
+library(edgeR)
 ```
 
 ```{r}
@@ -46,9 +47,14 @@ ramakar = recount3::create_rse_manual(
   project = "SRP073813",
   project_home = "data_sources/sra",
   organism = "human",
-  annotation = "gencode_v26",
+  annotation = "gencode_v29",
   type = "gene"
 )
+
+
+ramakar.manual = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/sra.gene_sums.SRP073813.G026", header=TRUE)
+
+ramakar.refine = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/SRP073813/SRP073813.tsv", sep = "\t", header=TRUE)
 ```
 
 ```{r sra-dataset}
@@ -74,7 +80,10 @@ md.sra = sra_data %>%
          StructureAcronym = gsub("AnCg", "ACC", StructureAcronym)) %>%
   mutate(Regions =  add_feature(.$StructureAcronym, regions),
         Age_rounded = as.character(sapply(na.omit(as.numeric(.$Age)), num_to_round)), 
-        Period = c("Postnatal")) %>%
+        Period = c("Postnatal"), 
+        Age = as.numeric(Age), 
+        pH = as.numeric(pH), 
+        PMI = as.numeric(PMI)) %>%
   mutate(AgeInterval = add_feature(.$Age_rounded , age_intervals)) %>%
   rownames_to_column("SampleID")
 ```
@@ -120,7 +129,100 @@ knitr::kable(ramakar_annot)
 md %<>% dplyr::select(contains(ramakar_annot$BITColumnName))
 ```
 
-```{r}
+```{r fig.height=20, fig.width=20}
 M = cor(data.matrix(md), use = "complete.obs")
 corrplot(M)
+```
+
+* Preprocess counts from recount 
+
+Best to use TPM 
+
+```{r}
+# #assay(ramakar, "counts") <- transform_counts(ramakar)
+# #counts.ram = assay(ramakar,)
+# assays(ramakar)$counts <- transform_counts(ramakar)
+# 
+# assays(ramakar)$tpm <- recount::getTPM(ramakar)
+# 
+# ram.tpm = assays(ramakar)$tpm %>% as.data.frame()
+# 
+# ram.tpm = assays(ramakar)$raw_counts
+
+
+```
+
+Filtering dataset 
+
+```{r}
+ramakar.cpm = ramakar.refine %>% 
+  column_to_rownames("Gene") %>% 
+  cpm()
+```
+
+```{r}
+ram.before = log(ramakar.cpm + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character( Var2))) +
+    geom_density() +
+    ggtitle("Before filtering") +
+    labs(x = "logTPM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+ram.exp.filt <- thresh(ramakar.cpm)
+
+
+ram.after =log(ram.exp.filt + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(Var2))) +
+    geom_density() +
+    ggtitle("After filtering") +
+    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+grid.arrange(ram.before, ram.after, ncol =2)
+```
+
+Variance partition 
+
+
+```{r}
+form.ram <- ~ Age + (1|StructureAcronym) + (1|Sex) + (1|Diagnosis) + PMI + pH
+C.ram = canCorPairs(form.ram, md)
+plotCorrMatrix(C.ram)
+```
+
+```{r}
+md %<>% 
+  dplyr::filter(SampleID %in% colnames(ram.exp.filt))
+```
+
+```{r}
+varPar.ram <- fitExtractVarPartModel(ram.exp.filt, form.ram ,md )
+
+```
+
+```{r}
+var.genes.ram = plotVarPart(varPar.ram)
+var.total.ram =plotPercentBars(varPar.ram [1:10,] )
+grid.arrange(var.genes.ram, var.total.ram , ncol = 2)
+```
+
+
+# Human developmental biology resource 
+
+```{r}
+hdbr = recount3::create_rse_manual(
+  project = "ERP016243",
+  type = "gene"
+)
+```
+
+
+```{r}
+assayNames(hdbr)
 ```
