@@ -1,6 +1,6 @@
 ,RecountName,BITHubName,Description
 1,rail_id,RunID,
-2,external_id,SampleID_recount,
+2,external_id,SampleID,
 3,study,StudyID,
 4,sra.sample_acc.x,SampleACC,
 5,sra.experiment_acc,ExperimentACC,
