@@ -83,11 +83,11 @@ md.sra = sra_data %>%
 md = colData(ramakar) %>% 
   as.data.frame() %>%
   dplyr::select(-contains("2"))
-colnames(md) = annot$BITHubName[match(colnames(md), annot$RecountName)]
+colnames(md) = annot$BITColumnName[match(colnames(md), annot$RecountName)]
 md = full_join(md, md.sra)
 
-md_names = colnames(md) %>% as.data.frame()
-write.csv(md_names, file = "../annotations/Ramaker-2017-metadata-annot.csv")
+#md_names = colnames(md) %>% as.data.frame()
+#write.csv(md_names, file = "../annotations/Ramaker-2017-metadata-annot.csv")
 ```
 
 
@@ -96,6 +96,7 @@ md.clean = md %>% select_if(~ !any(is.na(.)))
 md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
 ```
 
+* Selection of metadata variables for subset 
 
 ```{r fig.height=30, fig.width=30}
 M = cor(data.matrix(md.clean), use = "complete.obs")
@@ -104,4 +105,22 @@ corrplot(M, order='AOE')
 
 ```{r}
 rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame() 
+```
+
+* Selection for variance Partition 
+
+```{r}
+ramakar_annot = read.csv("../annotations/Ramaker-2017-metadata-annot.csv", header=TRUE) %>% 
+  dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
+  dplyr::select(-c(Include..Yes.No....Interest))
+
+
+knitr::kable(ramakar_annot)
+
+md %<>% dplyr::select(contains(ramakar_annot$BITColumnName))
+```
+
+```{r}
+M = cor(data.matrix(md), use = "complete.obs")
+corrplot(M)
 ```
