@@ -1,157 +1,157 @@
-"","."
-"1","RunID"
-"2","SampleID"
-"3","StudyID"
-"4","SampleACC"
-"5","ExperimentACC"
-"6","SubmissionACC"
-"7","SubmissionCentre"
-"8","SubmissionLab"
-"9","StudyTitle"
-"10","StudyAbstract"
-"11","StudyDescription"
-"12","ExperimentTitle"
-"13","DesignDescription"
-"14","SampleDescription"
-"15","LibraryName"
-"16","LibraryStrategy"
-"17","LibrarySource"
-"18","LibrarySelection"
-"19","LibraryLayout"
-"20","PairedNominalLength"
-"21","PairedNominalStdev"
-"22","LibraryConstructionProtocol"
-"23","PlatformModel"
-"24","SampleAttributes"
-"25","ExperimentAttributes"
-"26","SpotLength"
-"27","SampleName"
-"28","SampleTitle"
-"29","SampleBases"
-"30","SampleSpots"
-"31","RunPublished"
-"32","Size"
-"33","RunTotalBases"
-"34","RunTotalSpots"
-"35","NumReads"
-"36","NumSpots"
-"37","ReadInfo"
-"38","RunAlias"
-"39","Run_Center_Name"
-"40","Run_Broker_name"
-"41","Run_Center"
-"42","RecountProject"
-"43","Organism_recount"
-"44","FileSource_Recount"
-"45","Metadata_source"
-"46","Processed_Recount"
-"47","Percent_aligned_Chimeric"
-"48","Percent_aligned_ChrX"
-"49","Percent_aligned_ChrY"
-"50","AUC_all_alignments"
-"51","AUC_all_annotated_exons"
-"52","AUC_uniquely_aligned"
-"53","AUC_all_annotated_exons_unique"
-"54","AUC)all_percentage"
-"55","AUC_unique_percentage"
-"56","Total_fragments"
-"57","Read_Fragment_length"
-"58","Mean_Fragment_length"
-"59","Mean_Fragment_length_BAM"
-"60","Mode_Fragment_Length"
-"61","Mode_Fragment_Length_Count"
-"62","Percentage_fragment_mapped_exon_fc"
-"63","Percentage_fragment_mapped_unique_exon_fc"
-"64","Total_fragments_input_fc_exon_fc"
-"65","Total_fragments_assigned_exon_fc"
-"66","Total_fragments_count_unique_exon_fc"
-"67","Total_fragments_count_unique_assigned_exon_fc"
-"68","Percentage_fragment_mapped_gene_fc"
-"69","Percentage_fragment_mapped_unique_gene_fc"
-"70","Total_fragments_input_fc_gene_fc"
-"71","Total_fragments_assigned_gene_fc"
-"72","Total_fragments_count_unique_gene_fc"
-"73","Total_fragments_count_unique_assigned_gene_fc"
-"74","Intron_sum"
-"75","Intron_sum_percentage"
-"76","Percentage_chimeric_reads_STAR"
-"77","Percentage_mapped_multi_loci_STAR"
-"78","Percentage_mapped_too_many_loci_STAR"
-"79","Percentage_unmapped_other_STAR"
-"80","Percentage_unmapped_too_many_mismatches_STAR"
-"81","Percentage_unmapped_too_short_STAR"
-"82","Total_mapped_STAR"
-"83","Average_input_read_length_STAR"
-"84","Average_mapped_length_STAR"
-"85","Deletion_average_length_STAR"
-"86","Deteltion_rate_per_base_STAR"
-"87","Insertion_average_length_STAR"
-"88","Insertion_rate_per_base_STAR"
-"89","Mapping_speed_per_hour_STAR"
-"90","Percentage_mismatch_per_base_STAR"
-"91","Number_of_chimeric_reads_STAR"
-"92","Total_input_reads_STAR"
-"93","Number_reads_mapped_to_multiple_loci_STAR"
-"94","Number_reads_mapped_to_too_many_loci_STAR"
-"95","Number_reads_unmapped_other_STAR"
-"96","Number_reads_unmapped_mismatches_STAR"
-"97","Number_reads_unmapped_too_short_STAR"
-"98","Number_canonical_splices_AT_AC_STAR"
-"99","Number_splices_found_annotation_DB_STAR"
-"100","Number_canonical_splices_GC_AG_STAR"
-"101","Number_canonical_splices_GT_AG_STAR"
-"102","Number_non_canonical_splices_STAR"
-"103","Number_splices_total_STAR"
-"104","Total_percentage_mapped_STAR"
-"105","Percentage_uniquely_mapped_STAR"
-"106","Junction_count"
-"107","Junction_coverage"
-"108","Junction_average_coverage"
-"109","Number_input_reads_both_STAR"
-"110","All_mapped_reads_both_STAR"
-"111","Number_chimeric_reads_both_STAR"
-"112","Number_reads_mapped_multiple_loci_both_STAR"
-"113","Numner_reads_mapped_too_many_loci_both_STAR"
-"114","Number_reads_unmapped_other_both_STAR"
-"115","Number_reads_unmapped_mismatches_both_STAR"
-"116","Number_reads_unmapped_too_short_both_STAR"
-"117","Number_reads_mapped_uniquely_both_STAR"
-"118","Percentage_mapped_both_STAR"
-"119","Percent_Chimeric_both"
-"120","Percentage_mapped_multi_loci_both_STAR"
-"121","Percentage_mapped_too_many_loci_both_STAR"
-"122","Percentage_unmapped_other_both_STAR"
-"123","Percentage_unmapped_too_many_mismatches_both_STAR"
-"124","Percentage_unmapped_too_short_both_STAR"
-"125","Percentage_uniquely_mapped_both_STAR"
-"126","Min_read_length"
-"127","Max_read_length"
-"128","Average_length"
-"129","DIstinctQualityValues"
-"130","Percent_Bases"
-"131","Percent_A"
-"132","Percent_C"
-"133","Percent_G"
-"134","Percent_T"
-"135","Percent_N"
-"136","Average_Phred"
-"137","ErrQ"
-"138","SampleAccPrediction"
-"139","CuratedTypePrediction"
-"140","CuratedTissuePrediction"
-"141","PatternPredictionType"
-"142","PredictionType"
-"143","CellTypePrediction"
-"144","CellLinePrediction"
-"145","BigWigFile"
-"146","Age"
-"147","pH"
-"148","StructureAcronym"
-"149","Diagnosis"
-"150","Ethnicity"
-"151","Sex"
-"152","PMI"
-"153","Regions"
-"154","Age_rounded"
-"155","Period"
-"156","AgeInterval"
+OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest,Type
+rail_id,RunID,No,Sample charactertics
+external_id,SampleID,Yes,Sample charactertics
+study,StudyID,No,Sample charactertics
+sra.sample_acc.x,SampleACC,No,Sample charactertics
+sra.experiment_acc,ExperimentACC,No,Sample charactertics
+sra.submission_acc,SubmissionACC,No,Sample charactertics
+sra.submission_center,SubmissionCentre,No,Sample charactertics
+sra.submission_lab,SubmissionLab,No,Sample charactertics
+sra.study_title,StudyTitle,No,Sample charactertics
+sra.study_abstract,StudyAbstract,No,Sample charactertics
+sra.study_description,StudyDescription,No,Sample charactertics
+sra.experiment_title,ExperimentTitle,No,Sample charactertics
+sra.design_description,DesignDescription,No,Sample charactertics
+sra.sample_description,SampleDescription,No,Sample charactertics
+sra.library_name,LibraryName,No,Sequencing metrics
+sra.library_strategy,LibraryStrategy,No,Sequencing metrics
+sra.library_source,LibrarySource,No,Sequencing metrics
+sra.library_selection,LibrarySelection,No,Sequencing metrics
+sra.library_layout,LibraryLayout,No,Sequencing metrics
+sra.paired_nominal_length,PairedNominalLength,No,Sequencing metrics
+sra.paired_nominal_stdev,PairedNominalStdev,No,Sequencing metrics
+sra.library_construction_protocol,LibraryConstructionProtocol,No,Sequencing metrics
+sra.platform_model,PlatformModel,No,Sequencing metrics
+sra.sample_attributes,SampleAttributes,No,Sequencing metrics
+sra.experiment_attributes,ExperimentAttributes,No,Sequencing metrics
+sra.spot_length,SpotLength,No,Sequencing metrics
+sra.sample_name,SampleName,No,Sequencing metrics
+sra.sample_title,SampleTitle,No,Sequencing metrics
+sra.sample_bases,SampleBases,No,Sequencing metrics
+sra.sample_spots,SampleSpots,No,Sequencing metrics
+sra.run_published,RunPublished,No,Sequencing metrics
+sra.size,Size,No,Sequencing metrics
+sra.run_total_bases,RunTotalBases,No,Sequencing metrics
+sra.run_total_spots,RunTotalSpots,Yes,Sequencing metrics
+sra.num_reads,NumReads,No,Sequencing metrics
+sra.num_spots,NumSpots,No,Sequencing metrics
+sra.read_info,ReadInfo,No,Sequencing metrics
+sra.run_alias,RunAlias,No,Sequencing metrics
+sra.run_center_name,Run_Center_Name,No,Sequencing metrics
+sra.run_broker_name,Run_Broker_name,No,Sequencing metrics
+sra.run_center,Run_Center,No,Sequencing metrics
+recount_project.project,RecountProject,No,Sequencing metrics
+recount_project.organism,Organism_recount,No,Sequencing metrics
+recount_project.file_source,FileSource_Recount,No,Sequencing metrics
+recount_project.metadata_source,Metadata_source,No,Sequencing metrics
+recount_project.date_processed,Processed_Recount,No,Sequencing metrics
+recount_qc.aligned_reads..chrm,ChimericPairs,Yes,Sequencing metrics
+recount_qc.aligned_reads..chrx,Percent_aligned_ChrX,Yes,Sequencing metrics
+recount_qc.aligned_reads..chry,Percent_aligned_ChrY,Yes,Sequencing metrics
+recount_qc.bc_auc.all_reads_all_bases,AUC_all_alignments,Yes,Sequencing metrics
+recount_qc.bc_auc.all_reads_annotated_bases,AUC_all_annotated_exons,No,Sequencing metrics
+recount_qc.bc_auc.unique_reads_all_bases,AUC_uniquely_aligned,Yes,Sequencing metrics
+recount_qc.bc_auc.unique_reads_annotated_bases,AUC_all_annotated_exons_unique,No,Sequencing metrics
+recount_qc.bc_auc.all_.,AUC_all_percentage,Yes,Sequencing metrics
+recount_qc.bc_auc.unique_.,AUC_unique_percentage,Yes,Sequencing metrics
+recount_qc.bc_frag.count,TotalNFragments,Yes,Sequencing metrics
+recount_qc.bc_frag.kallisto_count,ReadFragmentLength,No,Sequencing metrics
+recount_qc.bc_frag.kallisto_mean_length,MeanFragmentLength,No,Sequencing metrics
+recount_qc.bc_frag.mean_length,MeanFragmentLength_BAM,No,Sequencing metrics
+recount_qc.bc_frag.mode_length,ModeFragmentLength,No,Sequencing metrics
+recount_qc.bc_frag.mode_length_count,ModeFragmentLengthCount,Yes,Sequencing metrics
+recount_qc.exon_fc.all_.,Percentage_fragment_mapped_exon_fc,Yes,Sequencing metrics
+recount_qc.exon_fc.unique_.,Percentage_fragment_mapped_unique_exon_fc,Yes,Sequencing metrics
+recount_qc.exon_fc_count_all.total,Total_fragments_input_fc_exon_fc,Yes,Sequencing metrics
+recount_qc.exon_fc_count_all.assigned,Total_fragments_assigned_exon_fc,Yes,Sequencing metrics
+recount_qc.exon_fc_count_unique.total,Total_fragments_count_unique_exon_fc,Yes,Sequencing metrics
+recount_qc.exon_fc_count_unique.assigned,Total_fragments_count_unique_assigned_exon_fc,Yes,Sequencing metrics
+recount_qc.gene_fc.all_.,Percentage_fragment_mapped_gene_fc,Yes,Sequencing metrics
+recount_qc.gene_fc.unique_.,Percentage_fragment_mapped_unique_gene_fc,Yes,Sequencing metrics
+recount_qc.gene_fc_count_all.total,Total_fragments_input_fc_gene_fc,Yes,Sequencing metrics
+recount_qc.gene_fc_count_all.assigned,Total_fragments_assigned_gene_fc,Yes,Sequencing metrics
+recount_qc.gene_fc_count_unique.total,Total_fragments_count_unique_gene_fc,Yes,Sequencing metrics
+recount_qc.gene_fc_count_unique.assigned,Total_fragments_count_unique_assigned_gene_fc,Yes,Sequencing metrics
+recount_qc.intron_sum,IntronTotal,Yes,Sequencing metrics
+recount_qc.intron_sum_.,IntronicRate,Yes,Sequencing metrics
+recount_qc.star.._of_chimeric_reads,Percentage_chimeric_reads_STAR,No,Sequencing metrics
+recount_qc.star.._of_reads_mapped_to_multiple_loci,Percentage_mapped_multi_loci_STAR,Yes,Sequencing metrics
+recount_qc.star.._of_reads_mapped_to_too_many_loci,Percentage_mapped_too_many_loci_STAR,Yes,Sequencing metrics
+recount_qc.star.._of_reads_unmapped._other,Percentage_unmapped_other_STAR,Yes,Sequencing metrics
+recount_qc.star.._of_reads_unmapped._too_many_mismatches,Percentage_unmapped_too_many_mismatches_STAR,Yes,Sequencing metrics
+recount_qc.star.._of_reads_unmapped._too_short,Percentage_unmapped_too_short_STAR,Yes,Sequencing metrics
+recount_qc.star.all_mapped_reads,ReadsMapped,Yes,Sequencing metrics
+recount_qc.star.average_input_read_length,Average_input_read_length_STAR,No,Sequencing metrics
+recount_qc.star.average_mapped_length,Average_mapped_length_STAR,No,Sequencing metrics
+recount_qc.star.deletion_average_length,Deletion_average_length_STAR,,Sequencing metrics
+recount_qc.star.deletion_rate_per_base,Deteltion_rate_per_base_STAR,,Sequencing metrics
+recount_qc.star.insertion_average_length,Insertion_average_length_STAR,,Sequencing metrics
+recount_qc.star.insertion_rate_per_base,Insertion_rate_per_base_STAR,,Sequencing metrics
+recount_qc.star.mapping_speed._million_of_reads_per_hour,Mapping_speed_per_hour_STAR,No,Sequencing metrics
+recount_qc.star.mismatch_rate_per_base._.,Percentage_mismatch_per_base_STAR,,Sequencing metrics
+recount_qc.star.number_of_chimeric_reads,Number_of_chimeric_reads_STAR,No,Sequencing metrics
+recount_qc.star.number_of_input_reads,TotalNReads,Yes,Sequencing metrics
+recount_qc.star.number_of_reads_mapped_to_multiple_loci,Number_reads_mapped_to_multiple_loci_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_mapped_to_too_many_loci,Number_reads_mapped_to_too_many_loci_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_unmapped._other,Number_reads_unmapped_other_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_unmapped._too_many_mismatches,Number_reads_unmapped_mismatches_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_unmapped._too_short,Number_reads_unmapped_too_short_STAR,No,Sequencing metrics
+recount_qc.star.number_of_splices._at.ac,Number_canonical_splices_AT_AC_STAR,No,Sequencing metrics
+recount_qc.star.number_of_splices._annotated_.sjdb.,Number_splices_found_annotation_DB_STAR,No,Sequencing metrics
+recount_qc.star.number_of_splices._gc.ag,Number_canonical_splices_GC_AG_STAR,No,Sequencing metrics
+recount_qc.star.number_of_splices._gt.ag,Number_canonical_splices_GT_AG_STAR,No,Sequencing metrics
+recount_qc.star.number_of_splices._non.canonical,Number_non_canonical_splices_STAR,No,Sequencing metrics
+recount_qc.star.number_of_splices._total,Number_splices_total_STAR,No,Sequencing metrics
+recount_qc.star.uniquely_mapped_reads_.,MappingRate,Yes,Sequencing metrics
+recount_qc.star.uniquely_mapped_reads_number,MappingRate_unique,Yes,Sequencing metrics
+recount_qc.junction_count,Junction_count,Yes,Sequencing metrics
+recount_qc.junction_coverage,Junction_coverage,Yes,Sequencing metrics
+recount_qc.junction_avg_coverage,Junction_average_coverage,Yes,Sequencing metrics
+recount_qc.star.number_of_input_reads_both,Number_input_reads_both_STAR,Yes,Sequencing metrics
+recount_qc.star.all_mapped_reads_both,All_mapped_reads_both_STAR,Yes,Sequencing metrics
+recount_qc.star.number_of_chimeric_reads_both,Number_chimeric_reads_both_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_mapped_to_multiple_loci_both,Number_reads_mapped_multiple_loci_both_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_mapped_to_too_many_loci_both,Numner_reads_mapped_too_many_loci_both_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_unmapped._other_both,Number_reads_unmapped_other_both_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_unmapped._too_many_mismatches_both,Number_reads_unmapped_mismatches_both_STAR,No,Sequencing metrics
+recount_qc.star.number_of_reads_unmapped._too_short_both,Number_reads_unmapped_too_short_both_STAR,No,Sequencing metrics
+recount_qc.star.uniquely_mapped_reads_number_both,Number_reads_mapped_uniquely_both_STAR,No,Sequencing metrics
+recount_qc.star.._mapped_reads_both,MappingRate_both,Yes,Sequencing metrics
+recount_qc.star.._chimeric_reads_both,Percent_Chimeric_both,No,Sequencing metrics
+recount_qc.star.._reads_mapped_to_multiple_loci_both,Percentage_mapped_multi_loci_both_STAR,Yes,Sequencing metrics
+recount_qc.star.._reads_mapped_to_too_many_loci_both,Percentage_mapped_too_many_loci_both_STAR,Yes,Sequencing metrics
+recount_qc.star.._reads_unmapped._other_both,Percentage_unmapped_other_both_STAR,Yes,Sequencing metrics
+recount_qc.star.._reads_unmapped._too_many_mismatches_both,Percentage_unmapped_too_many_mismatches_both_STAR,Yes,Sequencing metrics
+recount_qc.star.._reads_unmapped._too_short_both,Percentage_unmapped_too_short_both_STAR,Yes,Sequencing metrics
+recount_qc.star.uniquely_mapped_reads_._both,Percentage_uniquely_mapped_both_STAR,Yes,Sequencing metrics
+recount_seq_qc.min_len,MinReadLength,No,Sequencing metrics
+recount_seq_qc.max_len,MaxReadLength,No,Sequencing metrics
+recount_seq_qc.avg_len,Average_length,No,Sequencing metrics
+recount_seq_qc..distinct_quality_values,DIstinctQualityValues,No,Sequencing metrics
+recount_seq_qc..bases,Percent_Bases,No,Sequencing metrics
+recount_seq_qc..a,Percent_A,No,Sequencing metrics
+recount_seq_qc..c,Percent_C,No,Sequencing metrics
+recount_seq_qc..g,Percent_G,No,Sequencing metrics
+recount_seq_qc..t,Percent_T,No,Sequencing metrics
+recount_seq_qc..n,Percent_N,No,Sequencing metrics
+recount_seq_qc.avgq,Average_Phred,No,Sequencing metrics
+recount_seq_qc.errq,ErrQ,No,Sequencing metrics
+recount_pred.sample_acc.y,SampleAccPrediction,No,Sequencing metrics
+recount_pred.curated.type,CuratedTypePrediction,No,Sequencing metrics
+recount_pred.curated.tissue,CuratedTissuePrediction,No,Sequencing metrics
+recount_pred.pattern.predict.type,PatternPredictionType,No,Sequencing metrics
+recount_pred.pred.type,PredictionType,No,Sequencing metrics
+recount_pred.curated.cell_type,CellTypePrediction,No,Sequencing metrics
+recount_pred.curated.cell_line,CellLinePrediction,No,Sequencing metrics
+BigWigURL,BigWigFile,No,Sequencing metrics
+NA,Age,Yes,Phenotype
+NA,pH,Yes,Sequencing metrics
+NA,StructureAcronym,Yes,Sample charactertics
+NA,Diagnosis,Yes,Phenotype
+NA,Ethnicity,Yes,Phenotype
+NA,Sex,Yes,Phenotype
+NA,PMI,Yes,Sequencing metrics
+NA,Regions,Yes,Sample charactertics
+NA,Age_rounded,No,Phenotype
+NA,Period,Yes,Phenotype
+NA,AgeInterval,Yes,Phenotype
