@@ -1,0 +1,107 @@
+---
+title: "Recount Metadata pre-processing and correlations"
+author: "Urwah Nawaz"
+date: "2023-07-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    autodep = TRUE,
+    eval = TRUE,
+	echo = FALSE,
+	warning = FALSE,
+	message = FALSE
+)
+```
+
+# Setup 
+
+```{r libraries}
+library(recount3)
+library(DT)
+library(dplyr)
+library(tidyr)
+source("functions.R")
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(corrplot)
+```
+
+```{r}
+annot =  read.csv("../annotations/Recount-annotations.csv", header=TRUE, check.names = FALSE, sep = ",")
+```
+
+# Background 
+
+
+# Datasets 
+
+
+## Ramakar et al (2017)
+
+```{r}
+ramakar = recount3::create_rse_manual(
+  project = "SRP073813",
+  project_home = "data_sources/sra",
+  organism = "human",
+  annotation = "gencode_v26",
+  type = "gene"
+)
+```
+
+```{r sra-dataset}
+sra_data = colData(ramakar) %>% 
+  as.data.frame() %>% 
+  dplyr::select(contains("sra")) 
+
+
+md.sra = sra_data %>%
+  dplyr::select("sra.sample_attributes") %>%
+  separate(sra.sample_attributes, c("Age", "pH", "StructureAcronym", "Diagnosis", "Ethnicity", "Sex",
+                                    "PMI", "SourceName", "Tissue"), sep="\\|") %>% 
+  mutate(Age = gsub(".*;;","", Age), 
+         pH = gsub(".*;;","", pH), 
+         StructureAcronym = gsub(".*;;","", StructureAcronym),
+         Diagnosis = gsub(".*;;","", Diagnosis), 
+         Ethnicity = gsub(".*;;","", Ethnicity), 
+         Sex = gsub(".*;;","", Sex), 
+         PMI = gsub(".*;;","", PMI)) %>% 
+  dplyr::select(-c("SourceName", "Tissue")) %>% 
+  mutate(Sex = ifelse(Sex == "male", "M", "F"), 
+         StructureAcronym = gsub("nAcc","NAC", StructureAcronym), 
+         StructureAcronym = gsub("AnCg", "ACC", StructureAcronym)) %>%
+  mutate(Regions =  add_feature(.$StructureAcronym, regions),
+        Age_rounded = as.character(sapply(na.omit(as.numeric(.$Age)), num_to_round)), 
+        Period = c("Postnatal")) %>%
+  mutate(AgeInterval = add_feature(.$Age_rounded , age_intervals)) %>%
+  rownames_to_column("SampleID")
+```
+
+```{r recount}
+md = colData(ramakar) %>% 
+  as.data.frame() %>%
+  dplyr::select(-contains("2"))
+colnames(md) = annot$BITHubName[match(colnames(md), annot$RecountName)]
+md = full_join(md, md.sra)
+
+md_names = colnames(md) %>% as.data.frame()
+write.csv(md_names, file = "../annotations/Ramaker-2017-metadata-annot.csv")
+```
+
+
+```{r}
+md.clean = md %>% select_if(~ !any(is.na(.)))
+md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
+```
+
+
+```{r fig.height=30, fig.width=30}
+M = cor(data.matrix(md.clean), use = "complete.obs")
+corrplot(M, order='AOE')
+```
+
+```{r}
+rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame() 
+```
