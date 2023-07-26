@@ -149,7 +149,13 @@ for (f in directory){
 
 
 
+### Additions of the new datasets 
 
+hdbr_stats = summarise_stats(md.hdbr, "HDBR")
+age_interval_stats[["HDBR"]] = hdbr_stats
+
+ramakar_stats = summarise_stats(md, "Ramakar")
+age_interval_stats[["Ramakar"]] = ramakar_stats
 bulk_plot = age_interval_stats %>% 
     do.call(rbind, .) %>% 
     mutate(AgeInterval = factor(AgeInterval, levels = c("4-7pcw", "8-9pcw",
@@ -158,10 +164,12 @@ bulk_plot = age_interval_stats %>%
                                                         "6-18mos", "19mos-5yrs", "6-11yrs",
                                                         "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs",
                                                         "50-59yrs", "60-69yrs", "70-79yrs", "80-89yrs", "90-99yrs")), 
-           Type = factor(Type, levels = c("BrainSeq_Sample", "Individual_BrainSeq", 
-                                                      "BrainSpan_Sample", "Individual_BrainSpan", 
-                                                      "GTEx_Sample", "Individual_GTEx", 
-                                                      "PsychEncode_Sample", "Individual_PsychEncode"))) %>%
+           Type = factor(Type, levels = c("BrainSeq_Sample", "Individual_BrainSeq",
+                                          "BrainSpan_Sample", "Individual_BrainSpan",
+                                          "GTEx_Sample", "Individual_GTEx", 
+                                          "HDBR_Sample", "Individual_HDBR", 
+                                          "Ramakar_Sample", "Individual_Ramakar",
+                                          "PsychEncode_Sample", "Individual_PsychEncode"))) %>%
     drop_na() %>%
     ggplot(aes(x= AgeInterval, y = n, fill =Type)) +
         geom_bar(position = "dodge",stat= "identity") + 
@@ -173,7 +181,9 @@ bulk_plot = age_interval_stats %>%
         scale_fill_manual(values = c("#F75E5E", "#FFC6BD",
                                      "#49165E", "#EBBAFF",
                                      "#78A2EB", "#36466A",
-                                     "#F9AD79", "#FF5F0F")) + 
+                                     "#F9AD79", "#FF5F0F",
+                                     "#FFF75E", "#FDBE39", 
+                                     "#74C69D", "#2D6A4F")) + 
         theme(
             panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
             plot.background = element_rect(fill = "transparent",colour =NA)
@@ -182,8 +192,8 @@ bulk_plot = age_interval_stats %>%
 
 bulk_plot
 
-500ggsave(file = "../../Results/exploratory/bulk_dist_poster.svg", bulk_plot, 
-       height = 14.9624, width = 39.3501, units = "cm")
+ggsave(file = "../../Results/exploratory/bulk_dist_update.svg", bulk_plot, 
+       height = 18.9624, width = 45.3501, units = "cm")
     
 ### total number of donors and samples 
     
@@ -725,3 +735,6 @@ plot_CT_vel
 
 ggsave(file = "../../Results/exploratory/vel_CT.svg",plot_CT_vel, width=7.11, height =6.90, 
        units = "in")
+
+
+### Updates for plots 

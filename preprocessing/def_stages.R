@@ -45,7 +45,8 @@ age_intervals[["4-7pcw"]] = c(paste0(c(4:7), " pcw"),
 
 age_intervals[["8-9pcw"]] = c(paste0(c(8:9), " pcw"), 
                               paste("Carnegie Stage", c(20:23)), 
-                              paste(c(8:9), "post conception weeks")) # 2A 8-9 pcw Early prenatal
+                              paste(c(8:9), "post conception weeks"), 
+                              "Late 8 post conception weeks") # 2A 8-9 pcw Early prenatal
 
 age_intervals[["10-12pcw"]] = c(paste0(c(10:12), " pcw"),
                                 paste(c(10:12), "post conception weeks")) # 2B 10-12 pcw Early prenatal
@@ -81,7 +82,7 @@ age_intervals[["80-89yrs"]] = paste0(c(80:89), " yrs")
 age_intervals[["90-99yrs"]] = paste0(c(90:99), " yrs")
 
 
-order.intervals = c("8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",
+order.intervals = c("1-3pcw","4-7pcw", "8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw",
                     "19-24pcw", "25-38pcw", "0-5mos", "6-18mos", "19mos-5yrs", 
                     "6-11yrs", "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs")
 
@@ -108,7 +109,7 @@ structure_acronym[["CB"]] = c("Brain - Cerebellum", "cerebellum")
 structure_acronym[["HYP"]] = c("Brain - Hypothalamus")
 structure_acronym[["SNA"]] = c("Brain - Substantia nigra")
 structure_acronym[["ACC"]] = c("Brain - Anterior cingulate cortex (BA24)")
-structure_acronym[["CTX"]] = c("Brain - Cortex")
+structure_acronym[["CTX"]] = c("Brain - Cortex", "cerebral cortex")
 structure_acronym[["NAC"]] = c("Brain - Nucleus accumbens (basal ganglia)")
 structure_acronym[["CGE"]] = c("Brain - Caudate (basal ganglia)", "basal ganglion")
 structure_acronym[["DLPFC"]] = c("Brain - Frontal Cortex (BA9)")
@@ -117,25 +118,46 @@ structure_acronym[["CBC"]] = c("Brain - Cerebellar Hemisphere")
 structure_acronym[["HIP"]] = c("Brain - Hippocampus", "hippocampus")
 structure_acronym[["SCI"]] = c("Brain - Spinal cord (cervical c-1)", "spinal cord")
 structure_acronym[["TCx"]] = c("temporal lobe")
+
 structure_acronym[["MEDU"]] = c("medulla oblongata")
 structure_acronym[["PONS"]] = c("pons")
-
+structure_acronym[["DIEN"]] = c("diencephalon")
+structure_acronym[["BF"]] = c("brain fragment")
+structure_acronym[["CP"]] = c("choroid plexus")
+structure_acronym[["DIEN-MID"]] = c("diencephalon and midbrain")
+structure_acronym[["FB"]] = c("forebrain")
+structure_acronym[["FB-MID"]] = c("forebrain and midbrain")
+structure_acronym[["FB-MID"]] = c("forebrain fragment")
+structure_acronym[["HB"]] = c("hindbrain")
+structure_acronym[["HBF"]] = c("hindbrain fragment")
+structure_acronym[["HB/C"]] = c("hindbrain without cerebellum")
+structure_acronym[["MB"]] = c("midbrain")
+structure_acronym[["PIT-DIEN"]] =c("pituitary and diencephalon")
+structure_acronym[["TEL"]] = c("telencephalon")
+ 
 
 ################### Defining regions ####################
 regions = list()
 
 regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE", 
                            "MD", "STR", "SNA", "PUT", "HYP", "NAC", 
-                           "CP")
+                           "CP", "HB", "HBF", "HB/C")
 
 regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
                         "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
                         "M1C", "M1C-S1C", "S1C", "A1C", "ACC", "CTX", "DLPFC", 
-                        "MTG", "CgG", "M1lm", "M1ul", "S1lm", "S1ul", 
-                        "FB", "FBF")
+                        "MTG", "CgG", "M1lm", "M1ul", "S1lm", "S1ul")
 
 regions[["Cerebellum"]] = c("CBC", "CB", "URL")
 
 regions[["Spinal Cord"]] = c("SCI")
 
 regions[["Brainstem"]] = c("MEDU", "PONS", "MB")
+
+regions[["Diencephalon"]] = c("DIEN", "PIT-DIEN")
+
+regions[["Diencephalon and Midbrain"]] = c("DIEN-MID")
+regions[["Forebrain"]] = c("FB", "FBF")
+
+regions[["Forebrain and midbrain"]] = c("FB-MID")
+regions[["Telencephalon"]] =c("TEL")

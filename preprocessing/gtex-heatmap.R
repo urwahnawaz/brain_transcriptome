@@ -129,6 +129,12 @@ pheatmap(log(average_exp + 0.05), scale = "none", cluster_rows = FALSE,
 a <- with(df_category, setNames(Category, Col_name))[names(df)[col(df)]]
 tapply(unlist(df), list(row(df), a), mean)
 
+### histogram 
 
+gtex.bH.md.subset = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-metadata-subset.csv", header=TRUE, check.names = FALSE)
+
+gtex.bH.md.subset %>% 
+  ggplot(aes(x=RIN))  +geom_histogram() + 
+  facet_grid(~Regions)
 
   

@@ -88,6 +88,21 @@ md.sra = sra_data %>%
   rownames_to_column("SampleID")
 ```
 
+
+```{r}
+md.refine.bio = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/SRP073813/metadata_SRP073813.tsv", header=TRUE,
+                           sep = "\t")
+
+md.refine.bio %<>% 
+  as.data.frame() %>%
+  mutate(DonorID = gsub("_.*","", refinebio_title))  %>% 
+  dplyr::rename("SampleID" = "refinebio_accession_code")
+
+
+
+
+```
+
 ```{r recount}
 md = colData(ramakar) %>% 
   as.data.frame() %>%
@@ -95,6 +110,7 @@ md = colData(ramakar) %>%
 colnames(md) = annot$BITColumnName[match(colnames(md), annot$RecountName)]
 md = full_join(md, md.sra)
 
+md = full_join(md, md.refine.bio)
 #md_names = colnames(md) %>% as.data.frame()
 #write.csv(md_names, file = "../annotations/Ramaker-2017-metadata-annot.csv")
 ```
