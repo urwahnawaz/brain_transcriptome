@@ -1,0 +1,135 @@
+---
+title: "GTEx-preprocessing"
+author: "Urwah Nawaz"
+date: "2023-08-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Set-up
+
+```{r include = FALSE}
+source("functions.R")
+source("../signatures/libraries.R")
+source("../signatures/functions.R")
+load("../../DeconRNAShiny/sigsBrain.rda")
+library(recount3)
+library(magrittr)
+library(tibble)
+library(reshape2)
+library(SummarizedExperiment)
+library(corrplot)
+library(dplyr)
+library(ggvenn)
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(DT)
+library(EnsDb.Hsapiens.v86)
+library(singscore)
+library(AnnotationHub)
+library(stargazer)
+library(ggfortify)
+library(glue)
+library(cowplot)
+library(broom)
+library(glmpca)
+library(naniar)
+```
+
+
+# Background 
+
+# Preprocessing 
+
+Following analyses and steps will be performed before the data is ready to be exported to Brain Integrative Transcriptome Hub:
+
+- Metadata pre-processing including: 
+    - Adding brain region nomenclature
+    - Adding developmental stages 
+    - Consistent labeling of column names
+    - Adding metadata from different resources 
+    
+- Quality control checks including: 
+    - Regions labels (Experimental method)
+    - Determining 3' bias that can arise as a result of degradation
+    - GC content of the datatset 
+    - PCA
+  
+- Cellular deconvolution of data-set and performing goodness-of-fit
+  - Deconvolve using MultiBrain
+
+- Determining drivers of variation
+
+## Metdata pre-processing 
+
+```{r}
+annot = read.csv("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations/GTEx-metadata-annot.csv", header=TRUE)
+
+dir = file.path("/home/neuro/Documents/BrainData/Bulk/GTEx")
+
+```
+
+```{r}
+attributes = list.files(dir, full.names = TRUE, pattern = "\\SampleAttributesDS.txt") # Sample attributes contains sample level information
+phenotype = list.files(dir, full.names = TRUE, pattern = "\\SubjectPhenotypesDS.txt") # Phenotype level information related to each donor 
+exp = list.files(dir, full.names = TRUE, pattern = "\\gene_tpm.gct.gz") # File used for expression matrix 
+    
+md = read_tsv(attributes, col_types = c('.default' = 'c')) %>% 
+      dplyr::filter(SMTS == 'Brain') %>% 
+      mutate(SUBJID = sapply(str_split(SAMPID, pattern = "-"), function(x) paste(x[1:2], collapse = '-'))) %>%
+      left_join(read_tsv(phenotype, col_types = c('.default' = 'c')))  %>% as.data.frame()
+colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalMetadataColumnName)]
+    
+md = md %>% mutate(StructureAcronym = add_feature(.$Structure, structure_acronym)) %>% 
+      mutate(Regions = add_feature(.$StructureAcronym, regions), 
+             AgeInterval = paste(.$Age, "yrs", sep = ""), 
+             Diagnosis = "Control", 
+             Sex = ifelse(Sex == 1, "M", "F"), 
+             Period = "Postnatal") %>% as.data.frame()
+    
+exp = read.delim(exp, skip = 2)
+colnames(exp) <- gsub("\\.", "-", colnames(exp)) # Changing expression file names to match metadata SampleIDs
+exp %<>% column_to_rownames("Name")
+    
+exp = exp %>% 
+      dplyr::select(contains(md$SampleID))
+    message(paste0("Samples subsetted - Exp matrix contains ", ncol(exp), " samples"))
+    rownames(exp) <- sub("\\.[0-9]*$", "", rownames(exp))
+    
+md= md[which(md$SampleID %in% colnames(exp)),] 
+```
+
+## Export data
+```{r}
+write.csv(exp, file = file.path(dir, "Formatted/GTEx-exp.csv"))
+write.csv(md, file = file.path(dir,"Formatted/GTEx-metadata.csv"))
+
+```
+
+
+# Quality control checks 
+
+- Check sample labeling 
+
+
+- Determining 3' bias that can arise as a result of degradation
+
+```{r}
+#read coverage h (average RPKM × L) reflects the abundance and length of each transcript, but not the sequencing #depth of each sample.
+
+
+```
+
+
+- GC content of the dataset 
+
+```{r}
+
+
+```
+
+

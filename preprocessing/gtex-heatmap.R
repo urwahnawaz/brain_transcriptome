@@ -80,6 +80,9 @@ pheatmap(sub_samp_ordered, scale = "none", cluster_rows = FALSE,
                                                                                                                             
 average = with(gtex.bH.md.subset, setNames(StructureAcronym, SampleID))[names(sub_samp_ordered)[col(sub_samp_ordered)]]
 
+a <- with(df_category, setNames(Category, Col_name))[names(df)[col(df)]]
+  tapply(unlist(df), list(row(df), a), mean)
+
 tapply(unlist(sub_samp_ordered), list(row(sub_samp_ordered), average ), mean)
 
 a <- with(df_category, setNames(Category, Col_name))[names(df)[col(df)]]

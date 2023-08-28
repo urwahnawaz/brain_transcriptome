@@ -1,0 +1,433 @@
+---
+title: "BrainSpan pre-processing"
+author: "Urwah Nawaz"
+date: "2023-08-26"
+output: 
+  html_document:
+    code_folding: hide
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    autodep = TRUE,
+    eval = TRUE,
+	echo = FALSE,
+	warning = FALSE,
+	message = FALSE
+)
+```
+
+# Set-up
+
+```{r include = FALSE}
+source("functions.R")
+source("../signatures/libraries.R")
+source("../signatures/functions.R")
+load("../../DeconRNAShiny/sigsBrain.rda")
+library(recount3)
+library(magrittr)
+library(tibble)
+library(reshape2)
+library(SummarizedExperiment)
+library(corrplot)
+library(dplyr)
+library(ggvenn)
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(DT)
+library(EnsDb.Hsapiens.v86)
+library(singscore)
+library(AnnotationHub)
+library(stargazer)
+library(ggfortify)
+library(glue)
+library(cowplot)
+library(broom)
+library(glmpca)
+library(naniar)
+```
+
+```{r annotations}
+gene2symbol = genes(EnsDb.Hsapiens.v86, return.type="DataFrame") %>%
+    as.data.frame()
+gene2symbol %<>% 
+    dplyr::select("EnsemblID" = "gene_id", gene_name)
+
+```
+
+
+```{r include=FALSE}
+ah <- AnnotationHub() %>%
+    subset(species == "Homo sapiens") %>%
+    subset(rdataclass == "EnsDb") %>%
+  subset(genome == "GRCh38")
+ensDb <- ah[["AH109606"]]
+grTrans <- transcripts(ensDb)
+trLengths <- exonsBy(ensDb, "tx") %>%
+    width() %>%
+    vapply(sum, integer(1))
+mcols(grTrans)$length <- trLengths[names(grTrans)]
+
+genesGR = genes(ensDb)
+transGR = transcripts(ensDb)
+
+mcols(transGR) = mcols(transGR) %>%
+  cbind(
+    transcriptLengths(ensDb)[rownames(.), c("nexon", "tx_len")]
+  )
+```
+
+
+```{r}
+mcols(genesGR) <- mcols(genesGR) %>%
+  as.data.frame() %>%
+  dplyr::select(
+    gene_id, gene_name, gene_biotype, entrezid
+  ) %>%
+  left_join(
+    mcols(transGR) %>%
+      as.data.frame() %>%
+      mutate(
+        tx_support_level = case_when(
+          is.na(tx_support_level) ~ 1L, 
+          TRUE ~ tx_support_level
+        )
+      ) %>%
+      group_by(gene_id) %>%
+      dplyr::summarise(
+        n_tx = n(),
+        longest_tx = max(tx_len),
+        ave_tx_len = mean(tx_len),
+        gc_content = sum(tx_len*gc_content) / sum(tx_len)
+      ) %>%
+      mutate(
+        bin_length = cut(
+          x = ave_tx_len,
+          labels = seq_len(10),
+          breaks = quantile(ave_tx_len, probs = seq(0, 1, length.out = 11)),
+          include.lowest = TRUE
+        ),
+        bin_gc = cut(
+          x = gc_content,
+          labels = seq_len(10),
+          breaks = quantile(gc_content, probs = seq(0, 1, length.out = 11)),
+          include.lowest = TRUE
+        ),
+        bin = paste(bin_gc, bin_length, sep = "_")
+      ),
+    by = "gene_id"
+  ) %>%
+  set_rownames(.$gene_id) %>%
+  as("DataFrame")
+
+
+trans2Gene <- mcols(transGR) %>%
+    as.data.frame() %>%
+    dplyr::select(tx_id, gene_id) %>%
+    dplyr::filter(!is.na(tx_id), !is.na(gene_id)) %>%
+    as_tibble()
+
+```
+
+# Background 
+
+In this document, we will perform the pre-processing of the gene expression matrix from the BrainSpan Development Atlas. 
+
+
+# Preprocessing 
+
+Following analyses and steps will be performed before the data is ready to be exported to Brain Integrative Transcriptome Hub:
+
+- Metadata pre-processing including: 
+    - Adding brain region nomenclature
+    - Adding developmental stages 
+    - Consistent labeling of column names
+    - Adding metadata from different resources 
+    
+- Quality control checks including: 
+    - Regions labels (Experimental method)
+    - Determining 3' bias that can arise as a result of degradation
+    - GC content of the datatset 
+    - PCA
+  
+- Cellular deconvolution of data-set and performing goodness-of-fit
+  - Deconvolve using MultiBrain
+
+- Determining drivers of variation
+
+## Metdata pre-processing 
+```{r load-data, include=FALSE}
+annot = read.csv("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations/BrainSpan-metadata-annot.csv", header=TRUE)
+
+dir = file.path("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Kang/genes_matrix_csv")
+columns.metadata = read.csv(file.path(dir, "columns_metadata.csv"), header = TRUE)
+exp = read.csv(file.path(dir, "expression_matrix.csv"), header= FALSE, row.names= 1)
+rows.metadata = read.csv(file.path(dir, "rows_metadata.csv"))
+```
+
+The following BrainSpan metadata columns will be used for BITHub: 
+
+```{r col-names}
+colnames(columns.metadata) = annot$BITColumnName[match(colnames(columns.metadata),annot$OriginalMetadataColumnName)]
+
+final_annot =annot %>% 
+  dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
+  dplyr::select(-c(Include..Yes.No....Interest))
+
+knitr::kable(final_annot)
+```
+
+```{r}
+message("Adding additional metadata information")
+md = columns.metadata %>% 
+      mutate(Stage = add_feature(.$Age, stages), 
+             Regions = add_feature(.$StructureAcronym, regions), 
+             AgeInterval = add_feature(.$Age, age_intervals), 
+             Diagnosis = "Control", 
+             Age = gsub(" ","_", .$Age)) %>%  
+      mutate(SampleID = paste(DonorID, Age, StructureAcronym, Stage, sep = "_"), 
+             age_for_mRIN = gsub("_", "", .$Age), 
+             DonorName = gsub("\\.","_", .$DonorName)) %>% 
+      mutate('sample name' = paste(DonorName, age_for_mRIN,Sex ,StructureAcronym, sep = "//")) %>% 
+      dplyr::select("SampleID", everything())
+
+md$AgeNumeric[grepl("pcw", md$Age, ignore.case = TRUE)]<-
+      md$Age[grepl("pcw", md$Age)] %>%  str_remove("_pcw")%>% 
+      as.numeric() %>% `-` (40) %>% divide_by(52)
+md$AgeNumeric[grepl("mos", md$Age, ignore.case = TRUE)] <- 
+      md$Age[grepl("_mos", md$Age)] %>%  str_remove("_mos") %>% 
+      as.numeric() %>% divide_by(12)
+md$AgeNumeric[grepl("yrs", md$Age, ignore.case = TRUE)] <- 
+      md$Age[grepl("_yrs", md$Age)] %>%  str_remove("_yrs") %>% 
+      as.numeric 
+    
+md %<>% mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"), 
+                   colname = paste(DonorName, Age, StructureAcronym, sep = "_"))
+```
+
+```{r exp-rename}
+colnames(exp) = md$SampleID
+rownames(exp) <- rows.metadata$ensembl_gene_id
+```
+
+
+```{r}
+md.excel = read_excel("../annotations/BrainSpan-additional.xlsx",sheet =2, col_names = TRUE, skip =1) %>% 
+      as.data.frame() %>% mutate_at(.vars = "AllenInstituteID", 
+                                    .funs = gsub, pattern = "\\.", replacement = "\\_") %>%
+      mutate_at(.vars = "Age", .funs = gsub, pattern = "PCW", replacement = "_pcw") %>% 
+      mutate_at(.vars = "Age", .funs = gsub, pattern = "M", replacement = "_mos") %>%
+      mutate_at(.vars = "Age", .funs = gsub, pattern = "Y", replacement = "_yrs") %>%
+      mutate_at(.vars = "Region/Area", .funs = gsub, pattern = "\\/", replacement = "-") %>% 
+      mutate(colname = paste(AllenInstituteID, Age, `Region/Area`, sep = "_")) %>% 
+      dplyr::select(-c(Agerange, Age, Description))
+```
+
+```{r}
+md = md %>% 
+      left_join(.,md.excel, by = "colname", keep = TRUE)
+```
+
+```{r}
+md.excel = read_excel("../annotations/BrainSpan-additional.xlsx", sheet = 1, col_names = TRUE) %>% 
+      as.data.frame() %>% 
+      mutate_at(.vars="Internal ID", .funs = gsub, pattern = "\\.", replacement = "\\_") %>% 
+      dplyr::rename("Braincode" = "External ID")
+
+md %<>% 
+  left_join(md.excel, by ="Braincode") %>% 
+      dplyr::select(-c("Age.y", "colname.y", "colname.x", "Gender", AllenInstituteID,
+                     "Region/Area", "age_for_mRIN", "sample name", "Internal ID")) %>% 
+      dplyr::rename("Ethnicity"="Ethn.")  
+```
+
+
+### Export metadata and expression data 
+
+```{r}
+write.csv(exp, file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-exp.csv")
+write.csv(md, file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv")
+```
+
+
+## Quality control checks 
+
+- Check sample labeling 
+
+
+- Determining 3' bias that can arise as a result of degradation
+
+```{r}
+#read coverage h (average RPKM × L) reflects the abundance and length of each transcript, but not the sequencing #depth of each sample.
+
+
+```
+
+
+- GC content of the dataset 
+
+```{r}
+
+
+```
+
+
+
+## Deconvolution 
+
+
+```{r}
+bspan.decon = run_dtg(exp ,sigsBrain$MB) 
+
+gof_res = write.gof(exp, bspan.decon, 
+                    signatureUsed = sigsBrain$MB)
+
+
+gof_res %>% 
+    mutate(col = "BrainSpan") %>%
+    as.data.frame() %>% 
+    rownames_to_column("SampleID") %>% 
+    mutate(SampleID = gsub("X", "", SampleID)) %>%
+  mutate(SampleID = gsub("\\.", "_", SampleID)) %>%
+    left_join(md, by = "SampleID") %>%
+    drop_na(Regions) %>%
+    ggplot(aes(Regions, r, fill = Regions)) + geom_violin(width=1, alpha = 0.85) + 
+  geom_boxplot(width=0.1, color="white") +
+  theme_bw() + scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357")) + 
+  geom_hline(yintercept = c(0.5,0.7), color = "grey",linetype='dotted') + 
+  ylab("Goodness of fit (r)")
+```
+
+```{r}
+gof_res %>% 
+    mutate(col = "BrainSpan") %>%
+    as.data.frame() %>% 
+    rownames_to_column("SampleID") %>% 
+    mutate(SampleID = gsub("X", "", SampleID)) %>%
+  mutate(SampleID = gsub("\\.", "_", SampleID)) %>%
+    left_join(md, by = "SampleID") %>%
+  mutate(Period = factor(Period, levels = c("Prenatal", "Postnatal"))) %>%
+    drop_na(Regions) %>%
+    ggplot(aes(Period, r, fill = Period)) + geom_violin(width=1) + 
+  geom_boxplot(width=0.1, color="white") +
+  theme_bw() + scale_fill_manual(values = c("Prenatal" = "#F38BA9", 
+                                             "Postnatal" = "#46597D")) + 
+  geom_hline(yintercept = c(0.5,0.7), color = "grey",linetype='dotted') + 
+  ylab("Goodness of fit (r)")
+```
+
+
+## Selection of metadata variables for BITHub 
+
+
+
+## Determining drivers of variation 
+
+```{r}
+before = log(exp + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("Before filtering") +
+    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+bspan.exp.filt <- thresh(exp)
+
+
+after =log(bspan.exp.filt + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(variable))) +
+    geom_density() +
+    ggtitle("After filtering") +
+    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+grid.arrange(before, after, ncol =2)
+```
+
+- Principal component analysis 
+
+
+```{r pca}
+pc = log(bspan.exp.filt + 0.05) %>% 
+  t() %>% 
+   prcomp(scale = TRUE)
+
+pc$x %>% 
+  as.data.frame() %>%
+  dplyr::select(PC1, PC2, PC3) %>%
+   rownames_to_column("SampleID") %>% 
+  left_join(md, by = "SampleID") %>%
+ # pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>% 
+  ggplot(
+    aes(PC1, PC2, colour = as.character(StructureAcronym))
+  ) +
+  geom_point()
+```
+
+```{r}
+# mcols(transGR) %>%
+#   as.data.frame() %>%
+#   dplyr::filter(tx_id %in% rownames(pca$rotation)) %>%
+#   as_tibble() %>%
+#   mutate(
+#     bin_length = cut(
+#       x = tx_len,
+#       labels = seq_len(10),
+#       breaks = quantile(tx_len, probs = seq(0, 1, length.out = 11)),
+#       include.lowest = TRUE
+#     ),
+#     bin_gc = cut(
+#       x = gc_content,
+#       labels = seq_len(10),
+#       breaks = quantile(gc_content, probs = seq(0, 1, length.out = 11)),
+#       include.lowest = TRUE
+#     ),
+#     bin = paste(bin_gc, bin_length, sep = "_")
+#   ) %>%
+#   dplyr::select(tx_id, contains("bin")) %>%
+#   mutate(
+#     PC1 = pca$rotation[tx_id, "PC1"],
+#     PC2 = pca$rotation[tx_id, "PC2"]
+#   ) %>%
+#   pivot_longer(
+#     cols = c("PC1", "PC2"),
+#     names_to = "PC",
+#     values_to = "value"
+#   ) %>%
+#   group_by(PC, bin_gc, bin_length, bin) %>%
+#   summarise(
+#     Size = n(),
+#     mean = mean(value),
+#     sd = sd(value),
+#     t = t.test(value)$statistic,
+#     p = t.test(value)$p.value,
+#     adjP = p.adjust(p, method = "bonf")
+#   ) %>%
+#   ggplot(
+#     aes(bin_length, bin_gc, colour = t, alpha = -log10(adjP), size = Size)
+#   ) +
+#   geom_point() +
+#   facet_wrap(~PC) +
+#   scale_colour_gradient2() +
+#   scale_size_continuous(range = c(1, 10)) +
+#   labs(
+#     x = "Transcript Length",
+#     y = "GC Content",
+#     alpha = expression(paste(-log[10], p[adj]))) +
+#   theme(
+#     panel.grid = element_blank(),
+#     legend.position = "bottom"
+#     ) 
+```
+
+- Variance partition

@@ -1,0 +1,357 @@
+---
+title: "Bulk brain dataset exploration"
+author: "Urwah Nawaz"
+date: "2023-08-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction 
+
+Here, we will explore the characteristics of the bulk brain datasets, including several metadata attributes and expression attribites. 
+
+
+# Set-up 
+
+
+```{r include = FALSE}
+source("functions.R")
+library(recount3)
+library(magrittr)
+library(tibble)
+library(reshape2)
+library(SummarizedExperiment)
+library(corrplot)
+library(dplyr)
+library(ggvenn)
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(DT)
+library(EnsDb.Hsapiens.v86)
+library(singscore)
+library(ggplot2)
+```
+
+```{r annotations}
+gene2symbol = genes(EnsDb.Hsapiens.v86, return.type="DataFrame") %>%
+    as.data.frame()
+gene2symbol %<>% 
+    dplyr::select("EnsemblID" = "gene_id", gene_name)
+
+```
+
+```{r}
+thresh <- 1  
+thresh.in.weak <- 0.1
+thresh.in.stringent <- 0.2
+  
+apply.threshold <- function(data, t = thresh, fraction = thresh.in.weak) {
+    logi <- data > t
+    keep <- (rowSums(logi) / ncol(logi)) > fraction
+    
+    data <- data[keep,]
+    return(data)
+  } 
+```
+
+```{r}
+annot_plot = list()
+directory = file.path("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations")
+pattern = "/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations"
+
+
+of_interest = c("SampleID",  "DonorID", "PMI", "RIN","mito_Rate", "rRNA_rate", "RIN", "AgeNumeric", "Sex", 
+                "LibrarySize","AgeInterval", "Regions", "StructureAcronym", "Ethnicity", "Diagnosis", 
+                "CellType", "PMI","TotalNReads", "pH", "Hemisphere", "MappingRate" )
+
+for (f in directory){
+    md = list.files(f, full.names = TRUE, pattern = "\\-metadata-annot.csv$")
+    
+    for (j in md){
+      annot.file = read.csv(j, header= TRUE)
+      dataset = gsub(pattern, "", j)
+      dataset = gsub("\\-metadata-annot.csv","", dataset)
+      message("Now determining metadata variables for ", dataset)
+      annot.summary = annot.file %>% 
+        dplyr::filter(`Include..Yes.No....Interest` == "Yes") %>%
+        dplyr::filter(BITColumnName %in% of_interest) %>% 
+        dplyr::select(BITColumnName, dataset =`Include..Yes.No....Interest`) 
+    
+      annot_plot[[paste(dataset)]] = annot.summary
+
+    }
+    
+}
+```
+
+
+```{r}
+brain.dir =file.path("/home/neuro/Documents/BrainData/Bulk")
+e <- list()
+  
+e$Raw$GTEx <- read.csv(file.path(brain.dir, "/GTEx/Formatted/GTEx-exp.csv"), 
+                       check.names = FALSE)
+e$Raw$PE <- read.csv(file.path(brain.dir, "/PsychEncode/Formatted/PsychEncode-exp.csv"), 
+                     row.names =1, check.names = FALSE)
+e$Raw$BSpan <- read.csv(file.path(brain.dir, "/BrainSpan/Formatted/BrainSpan-exp.csv"),
+                        check.names = FALSE)
+e$Raw$BSeq <- read.csv(file.path(brain.dir,"/Brainseq/Formatted/BrainSeq-exp.csv"), 
+                       check.names = FALSE)
+
+e$Raw$HBDR <- read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-exp.csv"), 
+                       check.names = FALSE, row.names = 1) 
+
+e$Raw$Ramaker <- read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-exp.csv"), 
+                       check.names = FALSE, row.names = 1)
+
+
+e$Raw <- lapply(e$Raw, function(x) {
+    rownames(x) <- x[,1]
+    x <- x[,-1]
+    return(x)
+  })
+```
+
+
+
+# Metadata attributes 
+
+- Heatmap of available metadata attributes 
+
+```{r}
+do.call(cbind, annot_plot)
+```
+
+- Presence of metdata annotations 
+- Brain regions
+- Brain developmental stages
+
+# Expression-thresholding
+
+```{r}
+e$Scale <- lapply(e$Raw, scale) # basic z-score columnwise transformation
+e$Log <- lapply(e$Raw, function(x) { log2(x+0.5) }) # log2
+e$Log_Scale <- lapply(e$Log, scale) # log2 followed by scale
+```
+
+```{r}
+e$Thresh <- lapply(e$Raw, apply.threshold) # this is > 1 unit (TPM in GTEx, RPKM in others) in > 10% of samples
+e$Thresh_Scale <- lapply(e$Thresh, scale)
+e$Thresh_Log <- lapply(e$Thresh, function(x) { log2(x+0.5) })
+e$Thresh_Log_Scale <- lapply(e$Log, scale)
+```
+
+```{r}
+## Histogram of median expression
+  # collect median expression values across samples for every dataset
+p <- lapply(e, function(x) {
+    # lapply(x, rowMeans)
+    lapply(x, function(y) {
+      apply(y, 1, median)
+    })
+  })
+  
+p <- melt(p)
+colnames(p) <- c("MedianExp", "Dataset", "Transform")
+p$Dataset <- factor(p$Dataset)
+```
+
+```{r}
+# move thresholding category to a separate column
+p$Thresh <- FALSE;
+p$Thresh[grep("Thresh", p$Transform)] <- TRUE
+p$Transform <- gsub("Thresh_", "", p$Transform)
+p$Transform[which(p$Transform == "Thresh")] <- "Raw"
+p$Transform <- factor(p$Transform, levels = c("Raw", "Log", "Scale", "Log_Scale"))
+  
+  # ...and to separate dataframes
+t <- p[which(p$Thresh),]
+x <- table(t$Dataset) / 4 # this gets the number of genes in each dataset (divisor is 4 as each gene is represented by 4 transformations)
+levels(t$Dataset) <- paste0(names(x), " (n=", x, ")")
+  
+p2 <- p[-which(p$Thresh),]
+x <- table(p$Dataset) / 4 # this gets the number of genes in each dataset (divisor is 4 as each gene is represented by 4 transformations)
+levels(p$Dataset) <- paste0(names(x), " (n=", x, ")")
+```
+
+```{r}
+ggplot(p, aes(x = MedianExp, colour = Dataset)) +
+    geom_density() +
+    # geom_histogram() +
+    facet_wrap(~Transform, scales = "free") +
+    theme_bw() +
+    labs(y = "Density", x = "Median Expression Across Samples", title = "No Expression Filter")
+  
+```
+
+
+```{r}
+ggplot(t, aes(x = MedianExp, colour = Dataset)) +
+    geom_density() +
+    # geom_histogram() +
+    facet_wrap(~Transform, scales = "free") +
+    theme_bw() +
+    labs(y = "Density", x = "Median Expression Across Samples", title = ">1 RPKM in 10% of Samples")
+```
+
+
+```{r}
+## Correspondence
+  p <- lapply(e[c(1,4,5,8)], function(x) {
+    lapply(x, function(y) {
+      apply(y, 1, median)
+    })
+  })
+  
+q <- list()
+q$Thresh <- q$Raw <- list()
+for (j in names(e$Raw)) {
+    q$Raw[[j]] <- cbind(p$Raw[[j]], p$Log_Scale[[j]])
+    q$Thresh[[j]] <- cbind(p$Thresh[[j]], p$Thresh_Log_Scale[[j]])
+  }
+  
+  scatterplot <- function(x, y, lim = 100) { # x is Raw/Thresh, y is dataset
+    z <- q[[x]][[y]]
+    
+    # filter to set limit
+    rem <- (which(z[,1] > lim))
+    z <- z[-rem,]
+    
+    # calculate correspondences
+    at1 <- round(z[which.min(abs(z[,1] - 1)), 2],2)
+    at10 <- round(z[which.min(abs(z[,1] - 10)), 2],2)
+    at25 <- round(z[which.min(abs(z[,1] - 25)), 2],2)
+    at100 <- round(z[which.min(abs(z[,1] - 100)), 2],2)
+    at <- paste(at1, at10, at25, at100, sep = "/")
+    
+    qplot(z[,1], z[,2]) +
+      theme_bw() +
+      scale_x_continuous(limits = c(NA, lim)) +
+      # theme(axis.title.x = element_blank(), axis.ti)
+      labs(x = paste0("Untransformed RPKM/TPM", "\nx=1/10/25/100 | y=", at), 
+           y = "Scaled log2+0.5", 
+           title = paste(x, y, "(n=", nrow(z), ",", length(rem), "not shown)")) 
+  }
+  
+p <- list()
+p$AR <- scatterplot("Raw", "PE")
+p$AT <- scatterplot("Thresh", "PE")
+p$BR <- scatterplot("Raw", "BSpan")
+p$BT <- scatterplot("Thresh", "BSpan")
+p$CR <- scatterplot("Raw", "BSeq")
+p$CT <- scatterplot("Thresh", "BSeq")
+p$DR <- scatterplot("Raw", "GTEx")
+p$DT <- scatterplot("Thresh", "GTEx")
+```
+
+
+
+
+# PCA 
+
+```{r}
+thresh <- function(x) {
+      y <- x > 1
+      keep <- rowSums(y) > (ncol(y) / 10)
+      return(x[keep,])
+    }
+```
+
+```{r}
+gtex <- thresh(e$Raw$GTEx)
+span <- thresh(e$Raw$BSpan)
+seq <- thresh(e$Raw$BSeq)
+pe <- thresh(e$Raw$PE)
+hdbr <- thresh(e$Raw$HBDR)
+ram <- thresh(e$Raw$Ramaker)
+```
+
+```{r}
+common <- intersect(rownames(gtex), rownames(span))
+common <- intersect(common, rownames(seq))
+common <- intersect(common, rownames(pe))
+common <- intersect(common, rownames(hdbr))
+common <- intersect(common, rownames(ram))
+
+
+merge <- cbind(gtex[common,], 
+               span[common,], 
+               seq[common,], 
+               pe[common,],
+               hdbr[common,], 
+               ram[common,])
+```
+
+```{r}
+library(preprocessCore)
+q.merge <- normalize.quantiles(as.matrix(merge), copy = FALSE)
+  
+  # log transform
+q.merge <- log2(q.merge + 0.5)
+```
+
+```{r}
+m.gtex =read.csv(file.path(brain.dir, "/GTEx/Formatted/GTEx-metadata.csv")) %>% 
+  dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
+                "Regions", "StructureAcronym") %>% 
+  mutate(Dataset = c("GTEx"))
+
+m.span= read.csv(file.path(brain.dir, "/BrainSpan/Formatted/BrainSpan-metadata.csv")) %>% 
+  dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
+                "Regions", "StructureAcronym")  %>% 
+  mutate(Dataset = c("BrainSpan"))
+m.seq=read.csv(file.path(brain.dir, "/Brainseq/Formatted/BrainSeq-metadata.csv")) %>% 
+  dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
+                "Regions", "StructureAcronym")  %>% 
+  mutate(Dataset = c("Brainseq"))
+
+m.pe=read.csv(file.path(brain.dir, "/PsychEncode/Formatted/PsychEncode-metadata.csv")) %>% 
+  dplyr::select("SampleID", "AgeInterval", "Sex", "Period", "Regions", "StructureAcronym")  %>% 
+  mutate(Dataset = c("PsychEncode"))
+
+m.hdbr=read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-metadata.csv")) %>% 
+  dplyr::select("SampleID", "AgeInterval", "Sex", 
+                "Regions", "StructureAcronym") %>% 
+  mutate(Period = c("Prenatal"), 
+         Dataset = c("HBDR"))
+
+m.ram=read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-metadata.csv")) %>% 
+  dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
+                "Regions", "StructureAcronym") %>% 
+  mutate(Dataset = c("Ramaker"))
+
+
+m.merge <- rbind(m.gtex, m.span,m.seq,
+                 m.pe, m.hdbr,m.ram)
+
+```
+
+```{r}
+## PCA
+pca <- princomp(q.merge, cor = TRUE) # ~10 minutse
+  
+plot.data <- as.data.frame(pca$loadings[,1:2])
+colnames(plot.data) <- c("PC1", "PC2")
+plot.data <- data.frame(plot.data, m.merge)
+
+plot.data %>% 
+  rownames_to_column("SampleID") %>% 
+  left_join(m.merge) %>%
+  dplyr::filter(Dataset != "Ramaker") %>%
+  ggplot(aes(x = PC1, y = PC2, colour = Dataset)) +
+    geom_point() 
+  
+```
+
+```{r}
+plot.data %>% 
+  rownames_to_column("SampleID") %>% 
+  left_join(m.merge) %>%
+  ggplot(aes(x = PC1, y = PC2, colour = Regions)) +
+    geom_point()
+  
+```

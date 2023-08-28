@@ -1,0 +1,180 @@
+---
+title: "Plots for BITHub statistics"
+author: "Urwah Nawaz"
+date: "2023-08-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Set-up
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r library}
+
+libs = c("dplyr", "ggplot2", "reshape2", "tools", "magrittr", "tibble", "readxl", 
+         "data.table", "scales", "tidyr", "reshape2", "stringr", "tidyverse", "readxl", "corrplot", "viridis", 
+         "sunburstR", "pheatmap")
+libsLoaded <- lapply(libs,function(l){suppressWarnings(suppressMessages(library(l, character.only = TRUE)))})
+```
+
+```{r functions}
+add_feature = function(feature_column, features){
+    as.vector(sapply(feature_column, function(x){
+        names(features)[sapply(features, function(f) x %in% f)]})) 
+}
+
+
+num_to_round = function(age){
+    if (is.na(age)) {
+        NaN
+    } else if (age >= 2) {
+        paste0(round(age), " yrs")
+    } else if (age < 0) {
+        paste0(round(age * 52 + 40), " pcw")
+    } else if (age >= 0 & age < 2) {
+        paste0(round(age * 12), " mos")
+    }
+}
+
+
+
+## This calculates number of samples per age interval and number of samples 
+summarise_stats = function(x, dataset)
+{
+    age = table(x$AgeInterval) %>% melt()
+    age$Type = c(paste(dataset, "Sample", sep = "_"))
+    individuals = x %>% group_by(AgeInterval, DonorID) %>% 
+        summarise(n = n()) %>% 
+        as.data.frame() 
+    individuals = table(individuals$AgeInterval) %>% melt()
+    individuals$Type = c(paste("Individual", dataset, sep = "_"))
+    
+    age = rbind(age, individuals)
+    colnames(age) = c("AgeInterval", "n", "Type")
+    age$dataset = c(as.character(dataset))
+    return(age)
+    
+}
+
+summarise_regions = function(x, dataset){
+    regions = x %>% 
+        group_by(AgeInterval, Regions) %>% 
+        summarise(n = n())  %>% 
+        as.data.frame() %>% 
+        mutate(Dataset = dataset)
+    return(regions)
+}
+```
+
+
+# Single-nucleus plots 
+
+
+## Total number of single-nucleus per dataset and their category
+
+- HCA 
+
+
+```{r hca-total}
+hca = read.csv("../../../BrainData/single-cell/hca/HCA-metadata_fixed.csv", header=TRUE)
+
+hca.CT = hca %>% group_by(MajorCelltype) %>% 
+    summarise(n = n()) %>% 
+    as.data.frame() %>% 
+    mutate(percentage = (n/ sum(n)) * 100) 
+
+hca.CT$MajorCellType[hca.CT$MajorCelltype =="Astrocytes" | hca.CT$MajorCelltype == "Microglia" | 
+                         hca.CT$MajorCelltype == "Oligodendrocytes" | hca.CT$MajorCelltype == "OPCs"] <- c("Neuroglia")
+
+
+hca.CT$MajorCellType[hca.CT$MajorCelltype =="Vasculature"] <- c("Vasculature")
+
+hca.CT$MajorCellType[grepl("Neurons", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Neurons")
+```
+
+```{r plot-ct}
+hca.CT$n[3] = 3688
+
+hca.CT$MajorCellType = factor(hca.CT$MajorCellType, levels = c("Neurons", 
+                                                               "Neuroglia",
+                                                               "Vasculature"))
+plot_CT  = ggplot(hca.CT) +
+    # Make custom panel grid
+    geom_hline(
+        aes(yintercept = y), 
+        data.frame(y = c(0:5) * 10),
+        color = "lightgrey"
+    ) + 
+    # Add bars to represent the cumulative track lengths
+    # str_wrap(region, 5) wraps the text so each line has at most 5 characters
+    # (but it doesn't break long words!)
+    geom_col(
+        aes(
+            x = reorder(str_wrap(MajorCelltype, 5), n),
+            y = n,
+            fill = MajorCellType
+        ),
+        position = "dodge2",
+        show.legend = TRUE,
+        alpha = .9
+    ) + 
+    # Add dots to represent the mean gain
+    geom_point(
+        aes(
+            x = reorder(str_wrap(MajorCelltype, 5),n),
+            y = n
+        ),
+        size = 1,
+        color = "gray12"
+    ) +
+    
+    # Lollipop shaft for mean gain per region
+    geom_segment(
+        aes(
+            x = reorder(str_wrap(MajorCelltype, 5), n),
+            y = 0,
+            xend = reorder(str_wrap(MajorCelltype, 5), n),
+            yend = 3
+        ),
+        linetype = "dashed",
+        color = "gray12"
+    ) +
+
+    
+    # Make it circular!
+    coord_polar()
+
+plot_CT=  plot_CT +
+
+    # New fill and legend title for number of tracks per region
+    # Make the guide for the fill discrete
+    theme(
+        # Remove axis ticks and text
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.y = element_blank(),
+        # Use gray text for the region names
+        axis.text.x = element_text(color = "gray12", size = 12),
+        # Move the legend to the bottom
+        legend.position = "bottom",
+    ) + 
+     # scale_y_continuous(
+     #    limits = c(-2, 4.5),
+     #    expand = c(0, 0),
+     #    breaks = c(0, 1000, 2000, 3000)
+     #)   + 
+     scale_fill_manual(
+         values = c("#FFFDC2", "#D94A6F", "#68C9CF")
+     ) 
+plot_CT 
+
+```
+
+
+## Single-nuclei per major cell-type per age interval

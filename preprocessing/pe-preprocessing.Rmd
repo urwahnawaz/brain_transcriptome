@@ -1,0 +1,138 @@
+---
+title: "PsychEncode pre-processing"
+author: "Urwah Nawaz"
+date: "2023-08-28"
+output: 
+  html_document:
+    code_folding: hide
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    autodep = TRUE,
+    eval = TRUE,
+	echo = FALSE,
+	warning = FALSE,
+	message = FALSE
+)
+```
+
+
+# Set-up
+
+```{r include = FALSE}
+source("functions.R")
+source("../signatures/libraries.R")
+source("../signatures/functions.R")
+load("../../DeconRNAShiny/sigsBrain.rda")
+library(recount3)
+library(magrittr)
+library(tibble)
+library(reshape2)
+library(SummarizedExperiment)
+library(corrplot)
+library(dplyr)
+library(ggvenn)
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(DT)
+library(EnsDb.Hsapiens.v86)
+library(singscore)
+library(AnnotationHub)
+library(stargazer)
+library(ggfortify)
+library(glue)
+library(cowplot)
+library(broom)
+library(glmpca)
+library(naniar)
+```
+
+
+# Background 
+
+# Preprocessing 
+
+Following analyses and steps will be performed before the data is ready to be exported to Brain Integrative Transcriptome Hub:
+
+- Metadata pre-processing including: 
+    - Adding brain region nomenclature
+    - Adding developmental stages 
+    - Consistent labeling of column names
+    - Adding metadata from different resources 
+    
+- Quality control checks including: 
+    - Regions labels (Experimental method)
+    - Determining 3' bias that can arise as a result of degradation
+    - GC content of the datatset 
+    - PCA
+  
+- Cellular deconvolution of data-set and performing goodness-of-fit
+  - Deconvolve using MultiBrain
+
+- Determining drivers of variation 
+
+```{r load-data}
+annot = read.csv("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations/PsychEncode-metadata-annot.csv", header=TRUE)
+
+dir = file.path("/home/neuro/Documents/BrainData/Bulk/PsychEncode/")
+exp = list.files(dir, full.names = TRUE, pattern = "\\Gene_expression_matrix_TPM.txt") %>% 
+      read.table(., header=TRUE, row.names = 1, check.names = FALSE)
+md = list.files(dir, full.names = TRUE, pattern = "Job*") %>% read.csv(., header=TRUE)
+comp = list.files(dir, full.names = TRUE, pattern = "\\Cell_fractions*") %>% read_excel() %>%
+      as.data.frame() %>% 
+      column_to_rownames("CellType")
+```
+
+## Metadata
+```{r}
+colnames(md) = annot$BITColumnName[match(colnames(md), annot$OriginalColumnName)]
+    # Fix existing columns 
+comp = comp[,-1] 
+comp = as.data.frame(t(comp))
+m <- match(md$SampleID, rownames(comp))
+md <- cbind(md, comp[m,])
+    
+    
+# PCW to age numeric 
+md$AgeNumeric[grepl("PCW", md$AgeNumeric, ignore.case = TRUE)] = md$AgeNumeric[grepl("PCW", md$AgeNumeric)] %>%
+  str_remove("PCW")%>% 
+  as.numeric() %>% `-` (40) %>% divide_by(52)
+    
+md$AgeNumeric = gsub("90+", "91", md$AgeNumeric)
+md$AgeNumeric =gsub("\\+", "", md$AgeNumeric)
+    
+    
+md$AgeNumeric <- as.numeric(as.character(md$AgeNumeric))
+    
+md %<>%
+      dplyr::filter(Diagnosis == "Affective Disorder" |
+               Diagnosis == "Autism Spectrum Disorder" | 
+               Diagnosis == "Bipolar Disorder" |
+               Diagnosis == "Control" |
+               Diagnosis == "Schizophrenia") %>% 
+      mutate(Structure = c("Dorsolateral Prefrontal Cortex"),  ## Adding name of structure
+             StructureAcronym = c("DLPFC")) %>%  
+      mutate(Period = ifelse(.$AgeNumeric >= 0, "Postnatal", "Prenatal"))  %>%
+      mutate(Age_rounded = as.character(sapply(.$AgeNumeric, num_to_round))) %>% as.data.frame() %>%
+      mutate(AgeInterval = as.character(add_feature(.$Age_rounded, age_intervals))) %>% 
+      mutate(Regions = c("Cortex")) %>% 
+      mutate(DonorID = as.character(.$SampleID)) %>%
+      dplyr::select(-Age_rounded) %>%
+      as.data.frame()
+    
+    
+exp %<>% rownames_to_column("EnsemblID")
+  
+```
+
+## Export
+```{r}
+write.csv(exp, file = file.path(dir, "Formatted/PsychEncode-exp.csv"))
+write.csv(md, file = file.path(dir,"Formatted/PsychEncode-metadata.csv"))
+
+```
+
+

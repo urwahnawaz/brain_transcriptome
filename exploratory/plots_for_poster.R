@@ -44,13 +44,21 @@ summarise_stats = function(x, dataset)
     
 }
 
+summarise_regions = function(x, dataset){
+    regions = x %>% 
+        group_by(AgeInterval, Regions) %>% 
+        summarise(n = n())  %>% 
+        as.data.frame() %>% 
+        mutate(Dataset = dataset)
+    return(regions)
+}
 
 
 ### Heatmap showing which samples have what characteristics 
 
-of_interest = c("SampleID", "mito_Rate", "rRNA_rate", "RIN", "AgeNumeric", "Sex", 
-                "AgeInterval", "Regions", "StructureAcronym", "Ethnicity", "Diagnosis", 
-                "CellType", "PMI", "DonorID", "TotalNReads")
+of_interest = c("SampleID",  "DonorID", "PMI", "RIN","mito_Rate", "rRNA_rate", "RIN", "AgeNumeric", "Sex", 
+                "LibrarySize","AgeInterval", "Regions", "StructureAcronym", "Ethnicity", "Diagnosis", 
+                "CellType", "PMI","TotalNReads", "pH", "Hemisphere", "MappingRate" )
 
 
 
@@ -149,14 +157,53 @@ for (f in directory){
 
 
 
-### Additions of the new datasets 
 
+
+
+
+### Additions of the new datasets 
+md.hdbr = read.csv("/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-metadata.csv", header=TRUE, row.names=1)
+md = read.csv("/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-metadata.csv", header=TRUE, row.names = 1)
 hdbr_stats = summarise_stats(md.hdbr, "HDBR")
 age_interval_stats[["HDBR"]] = hdbr_stats
 
 ramakar_stats = summarise_stats(md, "Ramakar")
 age_interval_stats[["Ramakar"]] = ramakar_stats
-bulk_plot = age_interval_stats %>% 
+bulk_plot_version1 = age_interval_stats %>% 
+    do.call(rbind, .) %>% 
+    mutate(AgeInterval = factor(AgeInterval, levels = c("4-7pcw", "8-9pcw",
+                                                        "10-12pcw", "13-15pcw", "16-18pcw",
+                                                        "19-24pcw", "25-38pcw", "0-5mos",
+                                                        "6-18mos", "19mos-5yrs", "6-11yrs",
+                                                        "12-19yrs", "20-29yrs", "30-39yrs", "40-49yrs",
+                                                        "50-59yrs", "60-69yrs", "70-79yrs", "80-89yrs", "90-99yrs")), 
+           Type = factor(Type, levels = c("BrainSeq_Sample", "Individual_BrainSeq",
+                                          "BrainSpan_Sample", "Individual_BrainSpan",
+                                          "GTEx_Sample", "Individual_GTEx", 
+                                          "HDBR_Sample", "Individual_HDBR", 
+                                          "Ramakar_Sample", "Individual_Ramakar",
+                                          "PsychEncode_Sample", "Individual_PsychEncode"))) %>%
+    drop_na() %>%
+    ggplot(aes(x= n, y = AgeInterval, fill =Type)) +
+        geom_bar(position = "dodge",stat= "identity") + 
+        facet_grid(AgeInterval~dataset, scales = "free") + xlab("") + ylab("")  + theme_bw() +
+        theme(legend.position = "none", axis.text.x=element_blank(),
+              strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
+              panel.border = element_rect(color = "#E1DFDB", fill = NA, size = 1)) + 
+        theme(strip.text = element_text(colour = 'white')) +
+        scale_fill_manual(values = c("#F75E5E", "#FFC6BD",
+                                     "#49165E", "#EBBAFF",
+                                     "#78A2EB", "#36466A",
+                                     "#FFF75E", "#FDBE39",
+                                     "#F9AD79", "#FF5F0F",
+                                     "#74C69D", "#2D6A4F")) + 
+        theme(
+            panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+            plot.background = element_rect(fill = "transparent",colour =NA)
+        )
+
+
+bulk_plot_version2 = age_interval_stats %>% 
     do.call(rbind, .) %>% 
     mutate(AgeInterval = factor(AgeInterval, levels = c("4-7pcw", "8-9pcw",
                                                         "10-12pcw", "13-15pcw", "16-18pcw",
@@ -172,26 +219,28 @@ bulk_plot = age_interval_stats %>%
                                           "PsychEncode_Sample", "Individual_PsychEncode"))) %>%
     drop_na() %>%
     ggplot(aes(x= AgeInterval, y = n, fill =Type)) +
-        geom_bar(position = "dodge",stat= "identity") + 
-        facet_grid(dataset~AgeInterval, scales = "free") + xlab("") + ylab("")  + theme_bw() +
-        theme(legend.position = "none", axis.text.x=element_blank(),
-              strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
-              panel.border = element_rect(color = "#E1DFDB", fill = NA, size = 1)) + 
-        theme(strip.text = element_text(colour = 'white')) +
-        scale_fill_manual(values = c("#F75E5E", "#FFC6BD",
-                                     "#49165E", "#EBBAFF",
-                                     "#78A2EB", "#36466A",
-                                     "#F9AD79", "#FF5F0F",
-                                     "#FFF75E", "#FDBE39", 
-                                     "#74C69D", "#2D6A4F")) + 
-        theme(
-            panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
-            plot.background = element_rect(fill = "transparent",colour =NA)
-        )
+    geom_bar(position = "dodge",stat= "identity") + 
+    facet_grid(dataset~AgeInterval, scales = "free") + xlab("") + ylab("")  + theme_bw() +
+    theme(legend.position = "none", axis.text.x=element_blank(),
+          strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
+          panel.border = element_rect(color = "#f7f4ed", fill = NA, size = 2)) + 
+    theme(strip.text = element_text(colour = 'white')) +
+    scale_fill_manual(values = c("#F75E5E", "#FFC6BD",
+                                 "#49165E", "#EBBAFF",
+                                 "#78A2EB", "#36466A",
+                                 "#74C69D", "#2D6A4F",
+                                 "#FFF75E", "#FDBE39",
+                                 "#F9AD79", "#FF5F0F")) + 
+    theme(
+        panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+        plot.background = element_rect(fill = "transparent",colour =NA)
+    )
 
 
-bulk_plot
+bulk_plot_version2 
 
+ggsave(width = 11.01, height = 9.30, units = "in", 
+       file = "../../Results/exploratory/bulk_dist_thesis.svg", plot = bulk_plot_version2)
 ggsave(file = "../../Results/exploratory/bulk_dist_update.svg", bulk_plot, 
        height = 18.9624, width = 45.3501, units = "cm")
     
@@ -340,9 +389,13 @@ vel_age$dataset = "Velmeshev"
 vel %>% group_by(AgeInterval,  MajorCelltype) %>% 
     summarise(n = n()) %>% as.data.frame
 
+
+aldringer_age = table(md.full$AgeInterval) %>% melt()
+aldringer_age$dataset = "Aldringer"
 hca_age = table(hca$AgeInterval) %>% melt()
 hca_age$dataset = "HCA"
 sc_age_dist = rbind(hca_age,vel_age) %>% 
+    rbind(aldringer_age) %>%
     add_row(Var1 = c("4-7pcw", "8-9pcw", "10-12pcw", "13-15pcw", "16-18pcw", "19-24pcw", 
                      "25-38pcw", "0-5mos","6-18mos",  "30-39yrs", "60-69yrs",
                      "70-79yrs", "80-89yrs", "90-99yrs"), value = c(0,0,0,0,0,0,0,0,0,0,0,0,0,0), 
@@ -359,7 +412,7 @@ sc_age_dist = rbind(hca_age,vel_age) %>%
           strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
           panel.border = element_rect(color = "#E1DFDB", fill = NA, size = 1)) + 
     theme(strip.text = element_text(colour = 'white')) +
-    scale_fill_manual(values = c("#07473C","#B82828")) + 
+    scale_fill_manual(values = c("#E85571","#838DE0", "#FFD256")) + 
     theme(
         panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
         plot.background = element_rect(fill = "transparent",colour =NA)
@@ -367,7 +420,7 @@ sc_age_dist = rbind(hca_age,vel_age) %>%
 
 sc_age_dist
 
-ggsave(file = "../../Results/exploratory/sc_dist_poster.svg", sc_age_dist, 
+ggsave(file = "../../Results/exploratory/sc_dist_thesis.svg", sc_age_dist, 
        height = 8.0819, width = 39.3501, units = "cm")
 
 
@@ -637,7 +690,7 @@ plot_CT=  plot_CT +
      scale_fill_manual(
          values = c("#FFFDC2", "#D94A6F", "#68C9CF")
      ) 
-plot_CT
+plot_CT 
 
 ggsave(file = "../../Results/exploratory/hca_CT.svg", width=7.11, height =6.90, 
        units = "in")
@@ -737,4 +790,182 @@ ggsave(file = "../../Results/exploratory/vel_CT.svg",plot_CT_vel, width=7.11, he
        units = "in")
 
 
-### Updates for plots 
+### Regions per age interval 
+
+
+regions_per_interval = list()
+
+for (f in directory){
+    md = list.files(f, full.names = TRUE, pattern = "\\-metadata.csv$")
+    
+    for (j in md){
+        ct_file = read.csv(j, header= TRUE)
+        dataset = gsub(pattern, "", j)
+        dataset = gsub("\\-metadata.csv","", dataset)
+        message("Now calculating statistics for ", dataset)
+        stats = summarise_regions(ct_file, dataset)
+        regions_per_interval[[paste(dataset)]] = stats
+    }
+    
+}
+
+
+hdbr_resource = summarise_regions(md.hdbr, "HDBR")
+regions_per_interval[["HDBR"]] = hdbr_resource
+ramaker = summarise_regions(md, "Ramaker et al")
+regions_per_interval[["Ramaker et al"]] = ramaker
+regions_per_interval
+
+regions_dist_v1 = regions_per_interval %>% 
+    do.call(rbind,.) %>% 
+    mutate(AgeInterval = factor(AgeInterval, 
+                                levels = c("4-7pcw", "8-9pcw", 
+                                           "10-12pcw", "13-15pcw", "16-18pcw",
+                                           "19-24pcw", "25-38pcw", "0-5mos",
+                                           "6-18mos", "19mos-5yrs", "6-11yrs",
+                                           "12-19yrs", "20-29yrs", 
+                                           "30-39yrs", "40-49yrs",
+                                           "50-59yrs", "60-69yrs", 
+                                           "70-79yrs", "80-89yrs", "90-99yrs"))) %>%
+    mutate(Regions = factor(Regions, 
+                            levels= c("Cortex", "Subcortex",
+                                      "Cerebellum", 
+                                      "Spinal Cord", 
+                                      "Brain Fragment", 
+                                      "Diencephalon", 
+                                      "Telencephalon",
+                                      "Forebrain", 
+                                      "Forebrain and midbrain", 
+                                      "Midbrain",
+                                      "Hindbrain"
+                                    
+                                      ))) %>%
+    
+    drop_na() %>%
+    ggplot(aes(y=n, x=AgeInterval, fill = Dataset)) +
+    geom_bar(position = "fill",stat= "identity", color = "white") + 
+   # geom_col(position = "fill") +
+    facet_grid(Regions~AgeInterval, scales = "free") + xlab("") + ylab("")  + theme_bw() +
+    theme(legend.position = "none", axis.text.x=element_blank(),
+          strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
+          panel.border = element_rect(color = "#f7f4ed", fill = NA, size = 2)) + 
+    theme(strip.text = element_text(colour = 'white')) +
+    scale_fill_manual(values = c("#F1605F", 
+                                 "#49215F", 
+                                 "#7DA1D4", 
+                                 "#E11F28",
+                                 "#FAAD79",
+                                 "#75C79F")) +
+    theme(
+        panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+        plot.background = element_rect(fill = "transparent",colour =NA)
+    )
+
+
+regions_dist_v1
+ggsave(width = 11.01, height = 11.30, units = "in", 
+       file = "../../Results/exploratory/bulk_regions_dist_thesis.svg", plot = regions_dist_v1)
+
+
+
+regions_per_dataset_proportion = regions_per_interval %>% 
+    do.call(rbind,.) %>% 
+    mutate(AgeInterval = factor(AgeInterval, 
+                                levels = c("4-7pcw", "8-9pcw", 
+                                           "10-12pcw", "13-15pcw", "16-18pcw",
+                                           "19-24pcw", "25-38pcw", "0-5mos",
+                                           "6-18mos", "19mos-5yrs", "6-11yrs",
+                                           "12-19yrs", "20-29yrs", 
+                                           "30-39yrs", "40-49yrs",
+                                           "50-59yrs", "60-69yrs", 
+                                           "70-79yrs", "80-89yrs", "90-99yrs"))) %>%
+    mutate(Regions = factor(Regions, 
+                            levels= c("Cortex", 
+                                      "Subcortex",
+                                      "Cerebellum", 
+                                      "Spinal Cord", 
+                                      "Forebrain", 
+                                      "Forebrain and midbrain", 
+                                      "Midbrain",
+                                      "Hindbrain", 
+                                      "Brain fragment"
+                            ))) %>%
+    
+    drop_na() %>%
+    ggplot(aes(y=n, x=AgeInterval, fill = Regions)) +
+    geom_bar(position = "fill",stat= "identity", color = "white") + 
+    #geom_col(position = "fill") +
+    scale_fill_manual(values = c("#E85571", # cerebellum
+                                 "#838DE0", #cortex
+                                 "#FFD256", #subcortex
+                                 "#C6D14A", # spinal cord
+                                 "#F6B19D", #
+                                 "#ddae7e",
+                                 "#AC93AD",
+                                 "#6E8B8E", 
+                                 "#FFA6B7"
+                                )) +
+    facet_grid(Dataset~AgeInterval, scales = "free") + xlab("") + ylab("")  + theme_bw() +
+    theme(axis.text.x=element_blank(),
+          strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
+          panel.border = element_rect(color = "#f7f4ed", fill = NA, size = 2)) + 
+    theme(strip.text = element_text(colour = 'white')) +
+    theme(
+        panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+        plot.background = element_rect(fill = "transparent",colour =NA)
+    )
+
+ggsave(width = 11.01, height = 11.30, units = "in", 
+       file = "../../Results/exploratory/bulk_regions_dataset_prop.svg", 
+       plot = regions_per_dataset_proportion)
+
+regions_count = regions_per_interval %>% 
+    do.call(rbind,.) %>% 
+    mutate(AgeInterval = factor(AgeInterval, 
+                                levels = c("4-7pcw", "8-9pcw", 
+                                           "10-12pcw", "13-15pcw", "16-18pcw",
+                                           "19-24pcw", "25-38pcw", "0-5mos",
+                                           "6-18mos", "19mos-5yrs", "6-11yrs",
+                                           "12-19yrs", "20-29yrs", 
+                                           "30-39yrs", "40-49yrs",
+                                           "50-59yrs", "60-69yrs", 
+                                           "70-79yrs", "80-89yrs", "90-99yrs"))) %>%
+    mutate(Regions = factor(Regions, 
+                            levels= c("Cortex", 
+                                      "Subcortex",
+                                      "Cerebellum", 
+                                      "Spinal Cord", 
+                                      "Forebrain", 
+                                      "Forebrain and midbrain", 
+                                      "Midbrain",
+                                      "Hindbrain", 
+                                      "Brain fragment"
+                            ))) %>%
+    
+    drop_na() %>%
+    ggplot(aes(y=n, x=AgeInterval, fill = Regions)) +
+    geom_bar(position = "stack",stat= "identity", color = "white") + 
+    #geom_col(position = "fill") +
+    scale_fill_manual(values = c("#E85571", # cerebellum
+                                 "#838DE0", #cortex
+                                 "#FFD256", #subcortex
+                                 "#C6D14A", # spinal cord
+                                 "#F6B19D", #
+                                 "#ddae7e",
+                                 "#AC93AD",
+                                 "#6E8B8E", 
+                                 "#FFA6B7"
+    )) +
+    facet_grid(Dataset~AgeInterval, scales = "free") + xlab("") + ylab("")  + theme_bw() +
+    theme(axis.text.x=element_blank(),
+          strip.background =element_rect(fill="#AA9A9C", color = "#E1DFDB"), 
+          panel.border = element_rect(color = "#f7f4ed", fill = NA, size = 2)) + 
+    theme(strip.text = element_text(colour = 'white')) +
+    theme(
+        panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+        plot.background = element_rect(fill = "transparent",colour =NA)
+    )
+
+ggsave(width = 11.01, height = 10.30, units = "in", 
+       file = "../../Results/exploratory/bulk_regions_dataset_count.svg", 
+       plot = regions_count )

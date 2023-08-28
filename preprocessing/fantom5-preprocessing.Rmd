@@ -1,0 +1,230 @@
+---
+title: "Preprocessing of the Fantom5 data"
+author: "Urwah Nawaz"
+date: "2023-08-07"
+output: 
+  html_document:
+    code_folding: hide
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    autodep = TRUE,
+    eval = TRUE,
+	echo = TRUE,
+	warning = FALSE,
+	message = FALSE
+)
+
+```
+
+## 1. Introduction 
+
+In this markdown, I will be preprocessing the Fantom5 metadata annotations. These annotations were acquired from multiple different sources including Noguchi et al (2017), and from different labs. As a result, the metadata annotations are not consistent or may contain missing informtion. 
+
+In this workbook, I will systematically go through the metadata files I have retrieved from each source so a consensus can be agreed upon on which information we can keep and which we can discard for the purpose of BITHub. 
+
+
+
+
+```{r set-up}
+source("functions.R")
+library(recount3)
+library(magrittr)
+library(tibble)
+library(reshape2)
+library(SummarizedExperiment)
+library(corrplot)
+library(dplyr)
+library(DT)
+library(ggvenn)
+library(readxl)
+```
+
+
+## 2. Metadata files 
+
+
+Two metadata files were retrived for the Fantom5 CAGE dataset. 
+
+1) From Hamid: 889 samples - already preprocessed, mainly for Brain 
+
+2) Noguchi et al (2017) - 827 smaples in a human readible format. 
+
+
+
+```{r hamid-load}
+f5_hamid = read.delim("/home/neuro/Documents/BrainData/Bulk/Fantom5/FANTOM5/Fantom5SamplesAnnotated.csv", sep = ",")
+
+f5_hamid %<>% 
+  mutate(SampleID = gsub("\\..*", "", Library))
+
+
+f5_hamid %>% 
+   DT::datatable(caption=
+      " Metadata annotations acquired from Hamid. These annotations do not contain Sex or Age. 
+      ")
+
+```
+
+
+```{r supp}
+HS = read_excel("/home/neuro/Documents/BrainData/Bulk/Fantom5/FANTOM5/HumanSamples2.0.sdrf.xlsx") %>% as.data.frame()
+colnames(HS)[2] = c("FFID")
+
+other_supp = read.table("/home/neuro/Documents/BrainData/Bulk/Fantom5/FANTOM5/DRA002747.txt", fill = TRUE, header=TRUE)
+merged = merge(HS , other_supp, by= "FFID")
+
+
+merged %>% 
+     DT::datatable(caption=
+      " Metadata annotations from  Noguchi et al (2017). These annotations are more detailed and contain Sources, Age, Sex, Preparation Protocol. However additional preprocessing needs to be done to ensure column name consistency.
+      ")
+```
+
+### 2.1 Preprocessing 
+
+```{r}
+colnames(merged) = c("FFID", 
+                     "SourceName",
+                     "Characteristic", 
+                     "Catalog_ID",  
+                     "SampleType",
+                     "Species",
+                     "Sex", 
+                     "AgeNumeric",
+                     "Stage", 
+                     "Tissue", 
+                     "CellLot", 
+                     "CellType", 
+                     "Catalogue ID",
+                     "Collaboration", 
+                     "Provider", 
+                     "Protocol",
+                     "ExtrctName",
+                     "MaterialType",
+                     "LibraryID", 
+                     "DRA_sample_accession", 
+                     "DRA_experiment_accession",
+                     "DRA_run_accession", 
+                     "DRA_bam_accession",
+                     "DRA_ctss_accession",
+                     "Experimenet_method")
+
+merged_formatted = merged %>% 
+  dplyr::select(-c("Provider", "Catalogue ID", "Stage", 
+                   "CellLot", "Catalog_ID")) %>%
+  mutate(Sex = gsub("female", "F", Sex),
+         Sex = gsub("male", "M", Sex), 
+         Sex = gsub("n/a", "NA", Sex),
+         Sex = gsub("UNDEFINED_SEX_TYPE", "Undefined or Unknown", Sex), 
+         Sex =gsub("unknown", "Undefined or Unknown", Sex),
+         Tissue = str_to_sentence(Tissue),
+         CellType =str_to_sentence(CellType), 
+         DonorID = ifelse(grepl("donor",  Characteristic), Characteristic, NA)) %>% 
+  mutate(DonorID = gsub(".*, ", "", DonorID)) %>% 
+  mutate(DonorID = str_to_sentence(DonorID),
+         CellLine = ifelse(grepl("cell line", Characteristic), Characteristic, NA)) %>% 
+  dplyr::rename("SampleID" = "LibraryID")
+
+```
+
+
+
+```{r}
+merged_formatted %>% 
+  DT::datatable(caption = "Formatted columns from Noguchi et al (2017). This includes splitting the characteristics column into a seperate column for donor IDs. Further subsetting may be needed.")
+```
+## 3. Overlap with the Expression matrix 
+
+The expression matrix for Fantom5 was downloaded from the Consortium website. It contains 1829 samples., and 75,105 transcript annotations
+
+```{r exp-load}
+f5_osc =  read.delim("/home/neuro/Documents/BrainData/Bulk/Fantom5/FANTOM5/FANTOM5PHASE1and2gencodev19transcriptexpression(robustpromoter-50bp5primeend).osc")
+
+head(f5_osc)[1:10] %>%
+   DT::datatable(caption=
+      "The first 10 columns of the Fantom5 expression matrix. 
+      ")
+```
+
+To preprocess the expression matrix, I only want to keep the transcript names (without versions) and samples 
+
+
+```{r}
+f5_exp = f5_osc %>% 
+  dplyr::select(-c("eedb.chrom", "eedb.start.0base", "eedb.end", 
+                   "eedb.score", "eedb.strand", "gff.attributes")) %>% 
+    mutate_at(.vars = "eedb.name", .funs = gsub, pattern = "\\.[0-9]*$", replacement = "") %>% 
+  column_to_rownames("eedb.name")
+```
+
+
+Next, we want to see how many samples from each of the metadata annotation files overlap with the exp matrix. 
+
+- Hamid's md annotation 
+
+```{r}
+names_in_osc = colnames(f5_exp)
+names_in_osc %<>%
+  as.data.frame() %>% 
+  set_colnames("Colnames") %>% 
+  mutate(SampleID = gsub("exp.rle.", "", Colnames)) %>% 
+  mutate(SampleID = gsub("_ctss", "", SampleID))
+```
+
+```{r}
+x = list( "Hamid's MD" = f5_hamid$SampleID, 
+          "F5 OSC colnames" = names_in_osc$SampleID)
+
+ggvenn(x[c(1,2)], fill_color = c("#2F124B", "#EA2A5F"),
+                   set_name_color = "black", text_color = "white", text_size = 6, 
+                   stroke_size = 0.5, fill_alpha = 0.6) 
+```
+
+- Noguchi et al (2017)
+
+```{r}
+x = list( "F5 OSC colnames" = names_in_osc$SampleID, 
+          "Supp" = merged_formatted$SampleID)
+ggvenn(x[c(1,2)], fill_color = c("#2F124B", "#EA2A5F"),
+       set_name_color = "black", text_color = "white", text_size = 6, 
+       stroke_size = 0.5, fill_alpha = 0.6)  
+```
+
+- Hamid md overlap with Noguchi et al (2017)
+
+````{r}
+x = list( "Hamid's MD" = f5_hamid$SampleID, 
+          "Supp" = merged_formatted$SampleID)
+ggvenn(x[c(1,2)], fill_color = c("#2F124B", "#EA2A5F"),
+       set_name_color = "black", text_color = "white", text_size = 6, 
+       stroke_size = 0.5, fill_alpha = 0.6)  ## Doesn't merge with Hamids 
+```
+
+
+Essentially, about 1726 samples have annotations that are in some human readable format from the expression matrix. These will be retained and saved. 
+
+```{r}
+total_names = f5_hamid$SampleID %>% 
+  as.data.frame() %>% 
+  set_colnames("SampleID")
+
+total_names = rbind(total_names,  merged_formatted$SampleID %>% 
+                      as.data.frame() %>% 
+                      set_colnames("SampleID"))
+```
+
+
+### Data export 
+
+
+```{r}
+f5_final = f5_exp %>% 
+  dplyr::select(contains(total_names$SampleID)) %>% 
+  rownames_to_column("Ensembl_Tx_ID")
+
+
+write.csv(f5_final, file= "/home/neuro/Documents/BrainData/Bulk/Fantom5/Fantom5-exp.csv")
+```

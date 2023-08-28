@@ -28,6 +28,7 @@ library(gridExtra)
 library(variancePartition)
 library(corrplot)
 library(edgeR)
+library(purrr)
 ```
 
 ```{r}
@@ -37,8 +38,15 @@ annot =  read.csv("../annotations/Recount-annotations.csv", header=TRUE, check.n
 # Background 
 
 
-# Datasets 
+Recount3 contains over 70,000 uniformly processed human RNA-seq samples. Recount provides gene, exon and exon-exon junction count matrices both in text format and as a `RangedSummarizedExperiment`. 
 
+The reads from recount were algined with the splice-aware Rail-RNA aligner. To compute the gene count matrices, the mapped reads were quantified with Gencode v25 with hg38 coordinates. 
+
+Unlike traditional quantification methods, recount3 provides base-pair coverage counts. Essentially, these are created in the following manner: 
+
+- Ar each exonic base-pair, the number of reads overlapping at that given base pair is computed. However, as library size is provided in recount3, the coverage counts can be scaled to read counts for a given library size. 
+
+# Datasets 
 
 ## Ramakar et al (2017)
 
@@ -52,11 +60,12 @@ ramakar = recount3::create_rse_manual(
 )
 
 
-ramakar.manual = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/sra.gene_sums.SRP073813.G026", header=TRUE)
+#ramakar.manual = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/sra.gene_sums.SRP073813.G026", header=TRUE)
 
 ramakar.refine = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/SRP073813/SRP073813.tsv", sep = "\t", header=TRUE)
 ```
 
+### Metdata preprocessing 
 ```{r sra-dataset}
 sra_data = colData(ramakar) %>% 
   as.data.frame() %>% 
@@ -100,7 +109,6 @@ md.refine.bio %<>%
 
 
 
-
 ```
 
 ```{r recount}
@@ -132,93 +140,113 @@ corrplot(M, order='AOE')
 rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame() 
 ```
 
-* Selection for variance Partition 
+<!-- * Selection for variance Partition  -->
+
+<!-- ```{r} -->
+<!-- ramakar_annot = read.csv("../annotations/Ramaker-2017-metadata-annot.csv", header=TRUE) %>%  -->
+<!--   dplyr::filter(Include..Yes.No....Interest == "Yes") %>%  -->
+<!--   dplyr::select(-c(Include..Yes.No....Interest)) -->
+
+
+<!-- knitr::kable(ramakar_annot) -->
+
+<!-- md %<>% dplyr::select(contains(ramakar_annot$BITColumnName)) -->
+<!-- ``` -->
+
+<!-- ```{r fig.height=20, fig.width=20} -->
+<!-- M = cor(data.matrix(md), use = "complete.obs") -->
+<!-- corrplot(M) -->
+<!-- ``` -->
+
 
 ```{r}
-ramakar_annot = read.csv("../annotations/Ramaker-2017-metadata-annot.csv", header=TRUE) %>% 
-  dplyr::filter(Include..Yes.No....Interest == "Yes") %>% 
-  dplyr::select(-c(Include..Yes.No....Interest))
+assay(ramakar, "counts") = transform_counts(ramakar, round = TRUE)
 
+ram.tpm = recount::getTPM(ramakar)
+ram.tpm %<>% as.data.frame() %>%
+  dplyr::select(-SRR3438888)
 
-knitr::kable(ramakar_annot)
+filter <- rowSums(ram.tpm, na.rm = TRUE) > 0
 
-md %<>% dplyr::select(contains(ramakar_annot$BITColumnName))
+ram.tpm.filt = ram.tpm[filter,] %>% as.data.frame()
+ram.tpm.filt
+
+ram.tpm.filt <- thresh(ram.tpm.filt)
+md %<>% 
+  dplyr::filter(SampleID %in% colnames(ram.tpm.filt))
 ```
 
-```{r fig.height=20, fig.width=20}
-M = cor(data.matrix(md), use = "complete.obs")
-corrplot(M)
-```
+### Quality control analysis 
 
-* Preprocess counts from recount 
+### Deconvolution 
 
-Best to use TPM 
+### Determining drivers of variation
 
 ```{r}
-# #assay(ramakar, "counts") <- transform_counts(ramakar)
-# #counts.ram = assay(ramakar,)
-# assays(ramakar)$counts <- transform_counts(ramakar)
-# 
-# assays(ramakar)$tpm <- recount::getTPM(ramakar)
-# 
-# ram.tpm = assays(ramakar)$tpm %>% as.data.frame()
-# 
-# ram.tpm = assays(ramakar)$raw_counts
-
-
-```
-
-Filtering dataset 
-
-```{r}
-ramakar.cpm = ramakar.refine %>% 
-  column_to_rownames("Gene") %>% 
-  cpm()
-```
-
-```{r}
-ram.before = log(ramakar.cpm + 0.01) %>%
+ram.before = log(ram.tpm + 0.01) %>%
     melt() %>%
     dplyr::filter(is.finite(value)) %>% 
-    ggplot(aes(x=value, color = as.character( Var2))) +
+    ggplot(aes(x=value, color = as.character(variable))) +
     geom_density() +
     ggtitle("Before filtering") +
     labs(x = "logTPM", y = "Proportion of Genes") + 
     theme_bw() +
     theme(legend.position = "none")
 
-ram.exp.filt <- thresh(ramakar.cpm)
 
 
-ram.after =log(ram.exp.filt + 0.01) %>%
+ram.after =log(as.matrix(ram.tpm.filt) + 0.01) %>%
     melt() %>%
     dplyr::filter(is.finite(value)) %>% 
     ggplot(aes(x=value, color = as.character(Var2))) +
     geom_density() +
     ggtitle("After filtering") +
-    labs(x = "logRPKM", y = "Proportion of Genes") + 
+    labs(x = "logTPM", y = "Proportion of Genes") + 
     theme_bw() +
     theme(legend.position = "none")
 
 grid.arrange(ram.before, ram.after, ncol =2)
 ```
 
-Variance partition 
+- PCA
+
+```{r}
+## Refine bio 
+ramakar.refine %<>% column_to_rownames("Gene")
+ram.filt <- thresh(ramakar.refine) 
+```
 
 
 ```{r}
-form.ram <- ~ Age + (1|StructureAcronym) + (1|Sex) + (1|Diagnosis) + PMI + pH
+pc = log(ram.tpm.filt  + 0.05) %>% 
+  t() %>% 
+   prcomp(scale = TRUE)
+
+pc$x %>% 
+  as.data.frame() %>%
+  dplyr::select(PC1, PC2, PC3) %>%
+   rownames_to_column("SampleID") %>% 
+  left_join(md, by = "SampleID") %>%
+ # pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>% 
+  ggplot(
+    aes(PC1, PC2, colour = Size)
+  ) +
+  geom_point()
+
+```
+
+
+- Variance partition 
+
+```{r}
+form.ram <- ~ Age + (1|StructureAcronym) + (1|Sex) + (1|Diagnosis) + PMI + pH + TotalNReads + MappingRate + (1|Region)
 C.ram = canCorPairs(form.ram, md)
 plotCorrMatrix(C.ram)
 ```
 
-```{r}
-md %<>% 
-  dplyr::filter(SampleID %in% colnames(ram.exp.filt))
-```
 
 ```{r}
-varPar.ram <- fitExtractVarPartModel(ram.exp.filt, form.ram ,md )
+varPar.ram <- fitExtractVarPartModel(ram.tpm.filt, form.ram ,md )
 
 ```
 
@@ -228,17 +256,172 @@ var.total.ram =plotPercentBars(varPar.ram [1:10,] )
 grid.arrange(var.genes.ram, var.total.ram , ncol = 2)
 ```
 
+### Export data 
+
+```{r}
+ram.final = ram.tpm %>% 
+  as.data.frame() %>% 
+  rownames_to_column("EnsemblID") %>% 
+  mutate_at(.vars = "EnsemblID", .funs = gsub, pattern = "\\.[0-9]*$", replacement = "") 
+
+write.csv(ram.final, file= "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-exp.csv")
+
+write.csv(md, file = "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-metadata.csv")
+
+```
 
 # Human developmental biology resource 
+
+From recount3, I have also retrieved the dataset from the Human Developmental Biology Resource (HDBR) which contains the largest resource of prenatal samples. 
+
+- Load the data 
 
 ```{r}
 hdbr = recount3::create_rse_manual(
   project = "ERP016243",
   type = "gene"
 )
+
+hdbr_annot = read.csv("../annotations/HDBR-metadata.annot.csv", header=TRUE)
+
+```
+
+### Metadata processing 
+
+
+```{r}
+load("../annotations/HDBR.Rda")
+
+strc_acr <- map_df(structure_acronym, ~as.data.frame(.x), .id="id") %>% 
+  set_colnames("StructureAcronym")
+colnames(strc_acr)[2] = c("Structure")
+
+rgns = map_df(regions, ~as.data.frame(.x), .id="id") %>% 
+  set_colnames("Regions")
+colnames(rgns)[2] = c("StructureAcronym")
+
+
+md.hdbr = md.hdbr[,1:15]
+
+colnames(md.hdbr) = hdbr_annot$BITColumnName[match(colnames(md.hdbr), hdbr_annot$OriginalMetadataColumnName)]
+
+md.hdbr %<>% 
+  as.data.frame() %>% 
+  dplyr::select(-c(Block, OntologyIndividual,  KaryotypeOntology, Organism, OrganismOntology, 
+                   StructureOntology, HemisphereOntology, OntologyAge)) %>% 
+  mutate(AgeInterval = add_feature(.$Age, age_intervals))  %>%
+  left_join(strc_acr, by = "Structure") %>% 
+  left_join(rgns, by = "StructureAcronym") %>% 
+  mutate(Karyotype = toupper(Karyotype)) %>% 
+  mutate(Sex = ifelse(str_detect(Karyotype,"XX"), "F",
+                      ifelse(str_detect(Karyotype, "XY"), "M", "Unknown" )), 
+         Diagnosis = c("Control"))
+
+md = colData(hdbr) %>% 
+  as.data.frame() %>% 
+   dplyr::select(-contains("2"))
+colnames(md) = annot$BITColumnName[match(colnames(md), annot$RecountName)]
+
+md.hdbr %<>%
+  mutate(Hemisphere = gsub("right", "R", Hemisphere), 
+         Hemisphere = gsub("left", "L", Hemisphere), 
+         Hemisphere = gsub("frontal", "Frontal", Hemisphere))
+full.md.hdbr =left_join(md.hdbr, md)
+```
+
+
+
+```{r}
+md.clean = full.md.hdbr %>% select_if(~ !any(is.na(.)))
+md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
+```
+
+* Selection of metadata variables for subset 
+
+```{r fig.height=30, fig.width=30}
+M = cor(data.matrix(md.clean), use = "complete.obs")
+corrplot(M, order='AOE')
+```
+
+```{r}
+rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame() 
+
+```
+
+
+
+### Expression matrix preprocessing 
+
+```{r}
+assay(hdbr, "counts") = transform_counts(hdbr, round = TRUE)
+
+hdbr.tpm = recount::getTPM(hdbr)
+
+filter <- rowSums(hdbr.tpm, na.rm = TRUE) > 0.05
+hdbr.filter.tpm = hdbr.tpm[filter,]
+hdbr.filter.tpm <- thresh(hdbr.filter.tpm)
+
 ```
 
 
 ```{r}
-assayNames(hdbr)
+hdbr.before = log(hdbr.tpm + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character( Var2))) +
+    geom_density() +
+    ggtitle("Before filtering") +
+    labs(x = "logTPM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+
+
+hdbr.after =log(hdbr.filter.tpm + 0.01) %>%
+    melt() %>%
+    dplyr::filter(is.finite(value)) %>% 
+    ggplot(aes(x=value, color = as.character(Var2))) +
+    geom_density() +
+    ggtitle("After filtering") +
+    labs(x = "logTPM", y = "Proportion of Genes") + 
+    theme_bw() +
+    theme(legend.position = "none")
+
+grid.arrange(hdbr.before ,hdbr.after, ncol =2)
+```
+
+
+### Variance partition analysis 
+
+
+```{r}
+form.hdbr <- ~ (1|Age) + (1|StructureAcronym) + (1|Sex) + (1|Hemisphere) + TotalNReads + MappingRate + (1|Regions)
+C.hdbr = canCorPairs(form.hdbr, full.md.hdbr)
+plotCorrMatrix(C.hdbr)
+```
+
+
+```{r}
+varPar.hdbr <- fitExtractVarPartModel(hdbr.filter.tpm ,form.hdbr ,full.md.hdbr)
+
+```
+
+```{r}
+var.genes.hdbr= plotVarPart(varPar.hdbr)
+var.total.hdbr  =plotPercentBars(varPar.hdbr[1:10,] )
+grid.arrange(var.genes.hdbr,var.total.hdbr, ncol = 2)
+```
+
+
+### Export data 
+
+```{r}
+hdbr.final = hdbr.tpm %>% 
+  as.data.frame() %>% 
+  rownames_to_column("EnsemblID") %>% 
+  mutate_at(.vars = "EnsemblID", .funs = gsub, pattern = "\\.[0-9]*$", replacement = "") 
+
+write.csv(hdbr.final,file = "/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-exp.csv")
+
+write.csv(full.md.hdbr, file = "/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-metadata.csv")
 ```

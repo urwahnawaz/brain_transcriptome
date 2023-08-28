@@ -12,8 +12,8 @@ require(preprocessCore)
 require(Seurat)
 
 ## And load other files...
-load("../data/exonicLength.rda") # exonic lengths of genes, used for gene length normalisation
-load("../data/geneInfo.rda") # information about gene symbols, ids, and type
+#load("../annotations/data/exonicLength.rda") # exonic lengths of genes, used for gene length normalisation
+#load("../data/geneInfo.rda") # information about gene symbols, ids, and type
 
 ##################################################################################################################################
 ## General data preprocessing functions

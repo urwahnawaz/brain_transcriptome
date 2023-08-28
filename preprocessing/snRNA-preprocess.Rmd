@@ -1,0 +1,381 @@
+---
+title: "Single-nucleus data preprocessing"
+author: "Urwah Nawaz"
+date: "2023-08-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    autodep = TRUE,
+    eval = TRUE,
+	echo = FALSE,
+	warning = FALSE,
+	message = FALSE
+)
+```
+
+
+# Setup 
+
+```{r libraries}
+library(recount3)
+library(DT)
+library(dplyr)
+library(tidyr)
+source("functions.R")
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(corrplot)
+library(edgeR)
+library(purrr)
+require(forcats)
+source("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/preprocessing/snRNAseq-fun.R")
+```
+
+# Background 
+
+ 
+ 
+# HCA 
+
+
+```{r}
+hca.md = read.csv("/home/neuro/Documents/BrainData/single-cell/hca/HCA-metadata_fixed.csv", 
+                  header=TRUE)
+```
+
+
+```{r}
+hca.CT = hca.md %>% group_by(subclass, MajorCelltype) %>% 
+    summarise(n = n()) %>% 
+    as.data.frame() %>% 
+    mutate(percentage = (n/ sum(n)) * 100) 
+
+hca.CT$MajorCellType[hca.CT$MajorCelltype =="Astrocytes" | hca.CT$MajorCelltype == "Microglia" | 
+                         hca.CT$MajorCelltype == "Oligodendrocytes" | hca.CT$MajorCelltype == "OPCs"] <- c("Glia")
+
+
+hca.CT$MajorCellType[hca.CT$MajorCelltype =="Vasculature"] <- c("Vasculature")
+hca.CT$MajorCellType[grepl("Excitatory", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Excitatory Neurons")
+hca.CT$MajorCellType[grepl("Inhibitory", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Inhibitory Neurons")
+
+
+hca.CT %<>%
+  add_row(subclass = "For number", MajorCelltype = "number", n = 0, percentage = 0, MajorCellType = "Glia")
+```
+
+
+```{r}
+
+colours = c("Excitatory Neurons" = "#D94A6F", 
+           "Inhibitory Neurons" = "#FFA6B7", 
+           "Glia" = "#838DE0", 
+           "Vasculature" = "#C6D14A")
+ # mutate(subclass= fct_reorder(subclass, MajorCellType, .desc = TRUE)) %>% 
+hca.ct.plot = ggplot(hca.CT) +
+    # Make custom panel grid
+    geom_hline(
+        aes(yintercept = y), 
+        data.frame(y = c(0:5) * 10),
+        color = "lightgrey") + 
+    geom_col(
+        aes(
+            x = reorder(str_wrap(subclass, 5), n),
+            y = n,
+            fill = MajorCellType
+        ),
+        position = "dodge2",
+        show.legend = TRUE,
+        alpha = .9
+    ) +
+    coord_polar() +
+    annotate(
+    x =  20.7, 
+    y =510, 
+    label = "500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+  annotate(
+    x = 20.7, 
+    y = 1600, 
+    label = "1500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+    annotate(
+    x =  20.7, 
+    y =2600, 
+    label = "2500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+  annotate(
+    x =  20.7, 
+    y =3600, 
+    label = "3500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+  # Scale y axis so bars don't start in the center
+  scale_y_continuous(
+    limits = c(-1500, 4000),
+    expand = c(0, 0),
+    breaks = c(0, 50, 1000, 5000)
+  ) + 
+  # New fill and legend title for number of tracks per region
+   scale_fill_manual(
+         #values = c( "#838DE0","#D94A6F", "#C6D14A", "#FFA6B7")
+     values = colours 
+  )  +
+   theme_bw() +
+  theme(
+    # Remove axis ticks and text
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    # Use gray text for the region names
+    axis.text.x = element_text(color = "black", size = 12),
+    # Move the legend to the bottom
+    legend.position = "bottom",
+  ) 
+
+
+hca.ct.plot
+ggsave(file = "../../Results/exploratory/hca_CT_experiment_largest.svg", width=7.11, height =6.90, 
+       units = "in", plot = hca.ct.plot )
+
+```
+
+
+```{r}
+
+ggsave(file = "../../Results/exploratory/hca_CT_experiment.svg", width=7.11, height =6.90, 
+       units = "in")
+```
+
+
+
+# Velmeshev
+
+```{r}
+vel = read.csv("../../../BrainData/single-cell/velmeshev/Velmeshev-metadata.csv", header= TRUE)
+
+vel %<>% 
+    mutate(Age_rounded = as.character(sapply(na.omit(.$AgeNumeric), num_to_round))) %>%
+    mutate(AgeInterval = add_feature(.$Age_rounded, age_intervals))
+
+```
+
+```{r}
+vel.ct = vel %>%  group_by(CellType, MajorCelltype) %>% 
+    summarise(n = n()) %>% 
+    as.data.frame() %>% 
+    arrange(MajorCelltype, n)
+
+vel.ct$MajorCellType[vel.ct$MajorCelltype =="Astrocytes" | vel.ct$MajorCelltype == "Microglia" | 
+                                vel.ct$MajorCelltype == "Oligodendrocytes" | vel.ct$MajorCelltype == "OPCs"] <- c("Glia")
+
+
+vel.ct$MajorCellType[vel.ct$MajorCelltype =="Endothelia"] <- c("Vasculature")
+vel.ct$MajorCellType[grepl("Neurons", vel.ct$MajorCelltype, ignore.case = TRUE)] <- c("Neurons")
+#vel.ct$MajorCellType[grepl("Excitatory", vel.ct$MajorCelltype, ignore.case = TRUE)] <- c("Excitatory Neurons")
+#vel.ct$MajorCellType[grepl("Inhibitory", vel.ct$MajorCelltype, ignore.case = TRUE)] <- c("Inhibitory Neurons")
+
+
+vel.ct %<>%
+  add_row(CellType = "For number", MajorCelltype = "number", n = 0, MajorCellType = "Glia")
+
+```
+
+```{r}
+colours = c("Neurons" = "#D94A6F", 
+           "Glia" = "#838DE0", 
+           "Vasculature" = "#C6D14A")
+
+
+vel.ct.plot = ggplot(vel.ct)  +
+    # Make custom panel grid
+    geom_hline(
+        aes(yintercept = y), 
+        data.frame(y = c(0:5) * 10),
+        color = "lightgrey") + 
+    geom_col(
+        aes(
+            x = reorder(str_wrap(CellType, 5), n),
+            y = n,
+            fill = MajorCellType
+        ),
+        position = "dodge2",
+        show.legend = TRUE,
+        alpha = .9
+    ) +
+    coord_polar() +
+    annotate(
+    x =  20.7, 
+    y =510, 
+    label = "500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+  annotate(
+    x = 20.7, 
+    y = 1600, 
+    label = "1500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+    annotate(
+    x =  20.7, 
+    y =2600, 
+    label = "2500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+     annotate(
+    x =  20.7, 
+    y =3600, 
+    label = "3500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+   annotate(
+    x =  20.7, 
+    y =4600, 
+    label = "4500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+    annotate(
+    x =  20.7, 
+    y =5600, 
+    label = "5500", 
+    geom = "text", 
+    color = "gray12", 
+    family = "Bell MT"
+  ) +
+  # Scale y axis so bars don't start in the center
+  scale_y_continuous(
+    limits = c(-1500, 7000),
+    expand = c(0, 0),
+    breaks = c(0, 50, 1000, 5000)
+  ) + 
+  # New fill and legend title for number of tracks per region
+   scale_fill_manual(
+         #values = c( "#838DE0","#D94A6F", "#C6D14A", "#FFA6B7")
+     values = colours 
+  )  +
+   theme_bw() +
+  theme(
+    # Remove axis ticks and text
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    # Use gray text for the region names
+    axis.text.x = element_text(color = "black", size = 12),
+    # Move the legend to the bottom
+    legend.position = "bottom",
+  ) 
+
+ggsave(file = "../../Results/exploratory/vel_CT_.svg", width=7.11, height =6.90, 
+       units = "in", plot = vel.ct.plot)
+```
+
+# Aldringer et al (2021)
+
+Single-nucleus RNA-seq of the cerebellum 
+
+
+In this analysis, by using SPLiT-seq, Aldringer et al, sequenced 92,314 nuclei (~21, 000 raw reads per nucleus) with a median transcript capture of 1,214 UMIs.  
+
+Known marker genes were used to annotate 21 distinct cell types.  
+
+
+```{r}
+aldringer = file.path("/home/neuro/Documents/BrainData/single-cell/aldinger")
+md.sample = read_excel("/home/neuro/Documents/BrainData/single-cell/aldinger/NIHMS1703002-supplement-Supplementary_Tables.xlsx", sheet =2, skip=3)[,-1] %>% 
+  as.data.frame() %>% 
+  dplyr::rename("DonorID" = "Specimen") %>% 
+  dplyr::select(-Sex)
+clust_names = read_excel("/home/neuro/Documents/BrainData/single-cell/aldinger/NIHMS1703002-supplement-Supplementary_Tables.xlsx", sheet =8, skip=2) %>% 
+  dplyr::rename("Cluster" = "Cluster-Cell Type Abbreviation") %>% 
+  dplyr::select(Cluster, "Cell Type")
+  
+md.cells = read.table("/home/neuro/Documents/BrainData/single-cell/aldinger/meta.tsv", header=TRUE, fill = TRUE, 
+                sep = "\t") %>% 
+  dplyr::rename("DonorID" = "sample_id")
+```
+
+- have to add major cell types, age intervals, numeric age 
+```{r}
+md.full = left_join(md.cells, md.sample, by = "DonorID")
+md.full = left_join(md.full, clust_names, by = "Cluster")
+
+
+
+md.full %<>% 
+  dplyr::rename("Sex" = "sex", 
+                "Age" = "age", 
+                "MitoRate" = "percent.mito", 
+                 "CellID" ="cellId") %>% 
+  mutate(Age = gsub("PCW", "pcw", Age)) %>% 
+  mutate(AgeNumeric = Age %>% str_remove(" pcw") %>% 
+           as.numeric() %>% `-` (40) %>% divide_by(52)) %>%
+   mutate(AgeInterval = add_feature(.$Age, age_intervals))
+```
+
+
+```{r}
+dat <- read.table(file.path(aldringer, "exprMatrix.tsv"), header=TRUE, row.names=1)
+```
+```{r}
+max.depth <- get.max.depth(seurat)
+seurat <- preprocess.fun(seurat, max.depth = max.depth)
+
+GetAssayData(seurat, slot = "data")
+```
+
+
+```{r}
+#preprocess.fun <- function(x, run.downsample = downsample, SCTransform = use.SCTransform, max.depth = max.depth) {
+    # quantify mitochondrial reads
+    seurat[["percent.mito"]] <- PercentageFeatureSet(object =seurat , pattern = "^MT-")
+    
+    # filter to remove outlier nuclei: 
+    
+    x <- subset(x = seurat, subset = (nCount_RNA > min.depth) & (nCount_RNA < max.depth) & (percent.mito < max.mito))
+    
+    # downsample
+    if (run.downsample) { x <- downsample.fun(x) }
+    
+    # normalise expression levels
+    x <- NormalizeData(object = x, normalization.method = "LogNormalize", scale.factor = 10000) # standard parameters for Seurat
+    
+    # find variable genes (i.e. features)
+    x <- FindVariableFeatures(object = x, selection.method = "vst", nfeatures = 2000)
+    
+    
+    # further normalisation
+    if (use.SCTransform) {
+      x <- SCTransform(object = x, vars.to.regress = c("nCount_RNA", "percent.mito")) 
+    }
+    
+    # output
+    return(x)
+ # } 
+```
+
+
+
+#

@@ -1,0 +1,80 @@
+---
+title: "Gene expression changes"
+author: "Urwah Nawaz"
+date: "2023-08-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+
+```{r libraries include=FALSE}
+libs = c("dplyr", "ggplot2", "reshape2", "tools", "magrittr", "tibble", "readxl", 
+         "data.table", "scales", "tidyr", "reshape2", "stringr", "tidyverse", "readxl", "corrplot", "viridis", 
+         "sunburstR", "pheatmap")
+libsLoaded <- lapply(libs,function(l){suppressWarnings(suppressMessages(library(l, character.only = TRUE)))})
+library(EnsDb.Hsapiens.v86)
+```
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+# Set-up and data load 
+
+```{r annotations}
+gene2symbol = genes(EnsDb.Hsapiens.v86, return.type="DataFrame") %>%
+    as.data.frame()
+gene2symbol %<>% 
+    dplyr::select("EnsemblID" = "gene_id", gene_name)
+
+```
+
+```{r bspan-load}
+bspan.exp = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-exp.csv", header=TRUE, 
+                     check.names = FALSE, row.names =1)
+bspan.md = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-metadata.csv")
+```
+
+# ZIC2
+
+```{r}
+bspan.exp %>%
+    left_join(gene2symbol, by = "EnsemblID") %>% 
+    dplyr::filter(gene_name == "ZIC2") %>% 
+    dplyr::select(-gene_name) %>% 
+    column_to_rownames("EnsemblID") %>% 
+    melt() %>% 
+    dplyr::rename("SampleID" = "variable", "RPKM" = "value") %>% 
+    left_join(bspan.md) %>% 
+    ggplot(aes(x = Regions, y =RPKM, fill = Regions)) + geom_boxplot() 
+    
+```
+
+
+
+```{r}
+bhub.bspan = read.csv("/home/neuro/Documents/BrainData/Downloaded-26-BITHub/BrainSpan_RPKM.csv", header=TRUE, 
+                      check.names = FALSE, row.names =1)
+
+
+colnames(bhub.bspan) = gsub("-", "_", colnames(bhub.bspan))
+bhub.bspan %>%
+    as.data.frame() %>% 
+    rownames_to_column("EnsemblID") %>%
+    left_join(gene2symbol, by = "EnsemblID") %>% 
+    dplyr::filter(gene_name == "ZIC2") %>% 
+    dplyr::select(-gene_name) %>% 
+    column_to_rownames("EnsemblID") %>% 
+    melt() %>% 
+    dplyr::rename("SampleID" = "variable", "RPKM" = "value") %>% 
+    left_join(bspan.md) %>% 
+    ggplot(aes(x = Regions, y =RPKM, fill = Regions)) + geom_boxplot() 
+
+```
+```{r}
+
+```

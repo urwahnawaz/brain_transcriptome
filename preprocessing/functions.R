@@ -23,6 +23,18 @@ num_to_round = function(age){
 }
 
 
+thresh <- 1  
+thresh.in.weak <- 0.1
+thresh.in.stringent <- 0.2
+
+apply.threshold <- function(data, t = thresh, fraction = thresh.in.weak) {
+  logi <- data > t
+  keep <- (rowSums(logi) / ncol(logi)) > fraction
+  
+  data <- data[keep,]
+  return(data)
+} 
+
 
 clean_and_format = function(dir ,dataset, outdir){
   

@@ -141,7 +141,7 @@ regions = list()
 
 regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE", 
                            "MD", "STR", "SNA", "PUT", "HYP", "NAC", 
-                           "CP", "HB", "HBF", "HB/C")
+                           "CP", "MEDU", "PONS")
 
 regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
                         "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
@@ -152,12 +152,9 @@ regions[["Cerebellum"]] = c("CBC", "CB", "URL")
 
 regions[["Spinal Cord"]] = c("SCI")
 
-regions[["Brainstem"]] = c("MEDU", "PONS", "MB")
+regions[["Brain fragment"]] =c("BF")
 
-regions[["Diencephalon"]] = c("DIEN", "PIT-DIEN")
-
-regions[["Diencephalon and Midbrain"]] = c("DIEN-MID")
-regions[["Forebrain"]] = c("FB", "FBF")
-
-regions[["Forebrain and midbrain"]] = c("FB-MID")
-regions[["Telencephalon"]] =c("TEL")
+regions[["Forebrain"]] = c("FB", "FBF", "DIEN", "PIT-DIEN", "TEL")
+regions[["Midbrain"]] = c("MB")
+regions[["Forebrain and midbrain"]] = c("FB-MID", "DIEN-MID")
+regions[["Hindbrain"]] = c("HB", "HBF", "HB/C")
