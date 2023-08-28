@@ -64,7 +64,7 @@ SME1MPRT,End_1_Mapping_rate,Yes,Sequencing metrics
 SMNUM5CD,Num_of_Reads_Covered_5prime,Yes,Sequencing metrics
 SMDPMPRT,DuplicationRateMapped,Yes,Sequencing metrics
 SME2PCTS,Percentage_IntragenicEnd_2_Reads,Yes,Sequencing metrics
-SUBJID,DonorID,No,Phenotype
+SUBJID,DonorID,Yes,Phenotype
 DTHHRDY,HardyScale,Yes,Phenotype
 NA,Period,Yes,Phenotype
 NA,Diagnosis,Yes,Phenotype

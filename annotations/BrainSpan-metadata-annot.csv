@@ -1,7 +1,7 @@
 OriginalMetadataColumnName,BITColumnName,Include (Yes/No) - Interest,Type
 SampleID,SampleID,Yes,Sample characteristics
 column_num,column_num,No,Sample characteristics
-donor_id,DonorID,No,Phenotype
+donor_id,DonorID,Yes,Phenotype
 donor_name,DonorName,No,Phenotype
 age,Age,No,Phenotype
 gender,Sex,Yes,Phenotype
