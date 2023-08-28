@@ -61,12 +61,12 @@ apply.threshold <- function(data, t = thresh, fraction = thresh.in.weak) {
 ```{r}
 annot_plot = list()
 directory = file.path("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations")
-pattern = "/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations"
+pattern = "/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations/"
 
 
 of_interest = c("SampleID",  "DonorID", "PMI", "RIN","mito_Rate", "rRNA_rate", "RIN", "AgeNumeric", "Sex", 
                 "LibrarySize","AgeInterval", "Regions", "StructureAcronym", "Ethnicity", "Diagnosis", 
-                "CellType", "PMI","TotalNReads", "pH", "Hemisphere", "MappingRate" )
+                "CellType", "PMI","TotalNReads", "pH", "Hemisphere", "MappingRate", "HardyScale")
 
 for (f in directory){
     md = list.files(f, full.names = TRUE, pattern = "\\-metadata-annot.csv$")
@@ -79,7 +79,8 @@ for (f in directory){
       annot.summary = annot.file %>% 
         dplyr::filter(`Include..Yes.No....Interest` == "Yes") %>%
         dplyr::filter(BITColumnName %in% of_interest) %>% 
-        dplyr::select(BITColumnName, dataset =`Include..Yes.No....Interest`) 
+        dplyr::select(BITColumnName, `Include..Yes.No....Interest`) 
+      colnames(annot.summary)[2] = dataset
     
       annot_plot[[paste(dataset)]] = annot.summary
 
@@ -123,7 +124,54 @@ e$Raw <- lapply(e$Raw, function(x) {
 - Heatmap of available metadata attributes 
 
 ```{r}
-do.call(cbind, annot_plot)
+dataset_annot = merge(annot_plot$GTEx, annot_plot$BrainSeq, 
+                      by = "BITColumnName",
+                      all = TRUE)
+dataset_annot = merge(annot_plot$BrainSpan, dataset_annot,
+                      by = "BITColumnName", all = TRUE)
+dataset_annot = merge(annot_plot$HDBR, dataset_annot,  
+                      by = "BITColumnName", all = TRUE)
+dataset_annot = merge(annot_plot$PsychEncode, dataset_annot,  
+                      by = "BITColumnName", all = TRUE)
+dataset_annot = merge(annot_plot$`Ramaker-2017`, dataset_annot,  
+                      by = "BITColumnName", all = TRUE)
+
+dataset_annot= dataset_annot %>% 
+    mutate_all(~replace(., is.na(.), 0)) 
+
+dataset_annot = dataset_annot[-c(16:18),]
+
+
+dataset_annot$labels = c("Phenotype", "Phenotype","Phenotype", "Phenotype", "Phenotype",
+                         "Phenotype",
+                         "Sample", "Seq","Seq", "Seq", "Seq", "Seq", "Sample",
+                         "Seq", "Seq", "Sample", "Phenotype", "Sample", "Seq")
+
+
+
+dataset_annot %<>% 
+    arrange(labels) %>% 
+  dplyr::select(-labels) %>%
+  column_to_rownames("BITColumnName")
+
+ names = rownames(dataset_annot) 
+
+dataset_annot = data.frame(apply(dataset_annot,2, function(x) as.numeric(gsub("Yes", 1,x))))
+rownames(dataset_annot) = names
+
+
+
+
+```
+
+```{r}
+ dataset_annot[,c(6,4,3,5,1,2)] %>% t() %>%
+    pheatmap(cellheight = 15, 
+             cellwidth = 15, 
+             cluster_rows = FALSE, 
+             cluster_cols = FALSE, 
+             border_color = "#FFF8F9", 
+             color = c("#FFF8F9", "black"))
 ```
 
 - Presence of metdata annotations 
