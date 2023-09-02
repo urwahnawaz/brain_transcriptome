@@ -240,7 +240,15 @@ md %<>%
   left_join(md.excel, by ="Braincode") %>% 
       dplyr::select(-c("Age.y", "colname.y", "colname.x", "Gender", AllenInstituteID,
                      "Region/Area", "age_for_mRIN", "sample name", "Internal ID")) %>% 
-      dplyr::rename("Ethnicity"="Ethn.")  
+      dplyr::rename("Ethnicity"="Ethn.")  %>% 
+  distinct(SampleID, .keep_all = TRUE)
+
+
+   
+md = md[!duplicated(md[,c('column_num')]),]
+md %>% 
+      dplyr::arrange(column_num)
+    
 ```
 
 

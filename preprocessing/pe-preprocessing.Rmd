@@ -80,7 +80,8 @@ annot = read.csv("/home/neuro/Documents/Brain_integrative_transcriptome/brain_tr
 dir = file.path("/home/neuro/Documents/BrainData/Bulk/PsychEncode/")
 exp = list.files(dir, full.names = TRUE, pattern = "\\Gene_expression_matrix_TPM.txt") %>% 
       read.table(., header=TRUE, row.names = 1, check.names = FALSE)
-md = list.files(dir, full.names = TRUE, pattern = "Job*") %>% read.csv(., header=TRUE)
+md = list.files(dir, full.names = TRUE, pattern = "Job*") %>% read.csv(., header=TRUE) %>% 
+  dplyr::filter(individualID == "2015-1")
 comp = list.files(dir, full.names = TRUE, pattern = "\\Cell_fractions*") %>% read_excel() %>%
       as.data.frame() %>% 
       column_to_rownames("CellType")
@@ -94,7 +95,8 @@ comp = comp[,-1]
 comp = as.data.frame(t(comp))
 m <- match(md$SampleID, rownames(comp))
 md <- cbind(md, comp[m,])
-    
+
+
     
 # PCW to age numeric 
 md$AgeNumeric[grepl("PCW", md$AgeNumeric, ignore.case = TRUE)] = md$AgeNumeric[grepl("PCW", md$AgeNumeric)] %>%

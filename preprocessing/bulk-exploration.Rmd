@@ -34,6 +34,8 @@ library(DT)
 library(EnsDb.Hsapiens.v86)
 library(singscore)
 library(ggplot2)
+library(UpSetR)
+library(pheatmap)
 ```
 
 ```{r annotations}
@@ -60,6 +62,7 @@ apply.threshold <- function(data, t = thresh, fraction = thresh.in.weak) {
 
 ```{r}
 annot_plot = list()
+annot_all = list()
 directory = file.path("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations")
 pattern = "/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations/"
 
@@ -83,7 +86,7 @@ for (f in directory){
       colnames(annot.summary)[2] = dataset
     
       annot_plot[[paste(dataset)]] = annot.summary
-
+      annot_all[[paste(dataset)]] = annot.file
     }
     
 }
@@ -165,18 +168,52 @@ rownames(dataset_annot) = names
 ```
 
 ```{r}
- dataset_annot[,c(6,4,3,5,1,2)] %>% t() %>%
+ md.summary = dataset_annot[,c(6,4,3,5,1,2)] %>% t() %>%
     pheatmap(cellheight = 15, 
              cellwidth = 15, 
              cluster_rows = FALSE, 
              cluster_cols = FALSE, 
              border_color = "#FFF8F9", 
              color = c("#FFF8F9", "black"))
+
+ md.summary
 ```
 
-- Presence of metdata annotations 
-- Brain regions
-- Brain developmental stages
+
+```{r}
+ggsave(file = "../../Results/Thesis_plots/bithub-metadata.summary.svg",  md.summary, 
+       height = 7.5928, width = 19.9329, units = "cm")
+```
+
+- Upset plot showing the total number of sequencing metrics available per dataset and how many are shared: 
+
+```{r}
+bseq.tech = annot_all$BrainSeq %>%
+  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
+bspan.tech = annot_all$BrainSpan %>%
+  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
+gtex.tech = annot_all$GTEx %>%
+  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
+hdbr.tech = annot_all$HDBR %>%
+  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
+pe.tech = annot_all$PsychEncode %>%
+  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
+ram.tech = annot_all$`Ramaker-2017` %>%
+  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
+
+
+x= list( "BrainSeq" = bseq.tech$BITColumnName, 
+          "BrainSpan" = bspan.tech$BITColumnName, 
+          "GTEx" = gtex.tech$BITColumnName, 
+          "HDBR" = hdbr.tech$BITColumnName, 
+          "PsychEncode" = pe.tech$BITColumnName, 
+          "Ramaker" = ram.tech$BITColumnName)
+
+
+UpSetR::upset(fromList(x), sets.bar.color = c ("#75C7A0","#E11F28","#7DA1D4","#F1605F", "#49215F"))
+```
+
+
 
 # Expression-thresholding
 
@@ -370,7 +407,8 @@ m.hdbr=read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-metadata.csv")) %>%
 m.ram=read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-metadata.csv")) %>% 
   dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
                 "Regions", "StructureAcronym") %>% 
-  mutate(Dataset = c("Ramaker"))
+  mutate(Dataset = c("Ramaker")) %>% 
+  dplyr::filter(SampleID %in% colnames(ram))
 
 
 m.merge <- rbind(m.gtex, m.span,m.seq,
@@ -387,10 +425,8 @@ colnames(plot.data) <- c("PC1", "PC2")
 plot.data <- data.frame(plot.data, m.merge)
 
 plot.data %>% 
-  rownames_to_column("SampleID") %>% 
-  left_join(m.merge) %>%
-  dplyr::filter(Dataset != "Ramaker") %>%
-  ggplot(aes(x = PC1, y = PC2, colour = Dataset)) +
+ # dplyr::filter(Dataset != "Ramaker") %>%
+  ggplot(aes(x = PC1, y = PC2, color = Dataset)) +
     geom_point() 
   
 ```

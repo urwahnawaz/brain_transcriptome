@@ -35,6 +35,17 @@ library(purrr)
 annot =  read.csv("../annotations/Recount-annotations.csv", header=TRUE, check.names = FALSE, sep = ",")
 ```
 
+```{r}
+strc_acr <- map_df(structure_acronym, ~as.data.frame(.x), .id="id") %>% 
+  set_colnames("StructureAcronym")
+colnames(strc_acr)[2] = c("Structure")
+
+rgns = map_df(regions, ~as.data.frame(.x), .id="id") %>% 
+  set_colnames("Regions")
+colnames(rgns)[2] = c("StructureAcronym")
+
+```
+
 # Background 
 
 
@@ -74,6 +85,7 @@ sra_data = colData(ramakar) %>%
 
 md.sra = sra_data %>%
   dplyr::select("sra.sample_attributes") %>%
+  rownames_to_column("SampleID") %>%
   separate(sra.sample_attributes, c("Age", "pH", "StructureAcronym", "Diagnosis", "Ethnicity", "Sex",
                                     "PMI", "SourceName", "Tissue"), sep="\\|") %>% 
   mutate(Age = gsub(".*;;","", Age), 
@@ -85,16 +97,17 @@ md.sra = sra_data %>%
          PMI = gsub(".*;;","", PMI)) %>% 
   dplyr::select(-c("SourceName", "Tissue")) %>% 
   mutate(Sex = ifelse(Sex == "male", "M", "F"), 
-         StructureAcronym = gsub("nAcc","NAC", StructureAcronym), 
-         StructureAcronym = gsub("AnCg", "ACC", StructureAcronym)) %>%
-  mutate(Regions =  add_feature(.$StructureAcronym, regions),
-        Age_rounded = as.character(sapply(na.omit(as.numeric(.$Age)), num_to_round)), 
+         StructureAcronym = gsub("nAcc","NAC", StructureAcronym))  %>% 
+  mutate(StructureAcronym = gsub("AnCg", "ACC", StructureAcronym)) %>%
+  mutate(Age_rounded = as.character(sapply(na.omit(as.numeric(.$Age)), num_to_round)), 
         Period = c("Postnatal"), 
         Age = as.numeric(Age), 
         pH = as.numeric(pH), 
         PMI = as.numeric(PMI)) %>%
-  mutate(AgeInterval = add_feature(.$Age_rounded , age_intervals)) %>%
-  rownames_to_column("SampleID")
+  mutate(AgeInterval = add_feature(.$Age_rounded , age_intervals))
+
+md.sra %<>%
+  left_join(rgns, by = "StructureAcronym") 
 ```
 
 
@@ -118,6 +131,8 @@ md = colData(ramakar) %>%
 colnames(md) = annot$BITColumnName[match(colnames(md), annot$RecountName)]
 md = full_join(md, md.sra)
 
+md.refine.bio %>%
+  dplyr::select(SampleID,MetaSRA_age.at.death, DonorID)
 md = full_join(md, md.refine.bio)
 #md_names = colnames(md) %>% as.data.frame()
 #write.csv(md_names, file = "../annotations/Ramaker-2017-metadata-annot.csv")
@@ -131,14 +146,14 @@ md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(
 
 * Selection of metadata variables for subset 
 
-```{r fig.height=30, fig.width=30}
-M = cor(data.matrix(md.clean), use = "complete.obs")
-corrplot(M, order='AOE')
-```
-
-```{r}
-rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame() 
-```
+<!-- # ```{r fig.height=30, fig.width=30} -->
+<!-- # M = cor(data.matrix(md.clean), use = "complete.obs") -->
+<!-- # corrplot(M, order='AOE') -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # ```{r} -->
+<!-- # rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame()  -->
+<!-- # ``` -->
 
 <!-- * Selection for variance Partition  -->
 
@@ -164,7 +179,12 @@ assay(ramakar, "counts") = transform_counts(ramakar, round = TRUE)
 
 ram.tpm = recount::getTPM(ramakar)
 ram.tpm %<>% as.data.frame() %>%
-  dplyr::select(-SRR3438888)
+  dplyr::select(-c(SRR3438888))
+
+
+#,SRR3438686, SRR3438689,
+ #                  SRR3438708, SRR3438710, SRR3438736, 
+  #                 SRR3438712, SRR3438714, SRR3438716, SRR3438734))
 
 filter <- rowSums(ram.tpm, na.rm = TRUE) > 0
 
@@ -229,17 +249,27 @@ pc$x %>%
   left_join(md, by = "SampleID") %>%
  # pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>% 
   ggplot(
-    aes(PC1, PC2, colour = Size)
+    aes(PC1, PC2, colour = Size) 
   ) +
   geom_point()
 
+```
+```{r}
+log_gene_cor= cor(log(ram.tpm.filt  + 0.05 ))
+
+log_gene_cor[log_gene_cor==1] <- NA
+
+cor = rowMeans(log_gene_cor, na.rm = TRUE) %>% scale() %>% as.data.frame() %>%
+  set_colnames("Genes")
+
+cor %>% DT::datatable()
 ```
 
 
 - Variance partition 
 
 ```{r}
-form.ram <- ~ Age + (1|StructureAcronym) + (1|Sex) + (1|Diagnosis) + PMI + pH + TotalNReads + MappingRate + (1|Region)
+form.ram <- ~ Age + (1|StructureAcronym) + (1|Sex) + (1|Diagnosis) + PMI + pH + TotalNReads + MappingRate + (1|Regions)
 C.ram = canCorPairs(form.ram, md)
 plotCorrMatrix(C.ram)
 ```
@@ -282,7 +312,18 @@ hdbr = recount3::create_rse_manual(
   type = "gene"
 )
 
-hdbr_annot = read.csv("../annotations/HDBR-metadata.annot.csv", header=TRUE)
+hdbr_annot = read.csv("../annotations/HDBR-metadata-annot.csv", header=TRUE)
+hdbr_supp = read_excel("/home/neuro/Documents/BrainData/Bulk/HDBR/Amended Supplementary Table 1.xlsx", 
+                       sheet = 1, skip =6) %>% 
+  as.data.frame()
+
+colnames(hdbr_supp) = c("DonorID","Age", "SampleID", "Structure","Hemisphere", "Sex", "PMI")
+hdbr_supp %<>% dplyr::select("DonorID","Structure", "PMI")
+```
+
+```{r}
+hdbr_phenotype = read.csv("/home/neuro/Documents/BrainData/Bulk/HDBR/hdbr-phenotype.csv", 
+                          header=TRUE)
 
 ```
 
@@ -292,13 +333,6 @@ hdbr_annot = read.csv("../annotations/HDBR-metadata.annot.csv", header=TRUE)
 ```{r}
 load("../annotations/HDBR.Rda")
 
-strc_acr <- map_df(structure_acronym, ~as.data.frame(.x), .id="id") %>% 
-  set_colnames("StructureAcronym")
-colnames(strc_acr)[2] = c("Structure")
-
-rgns = map_df(regions, ~as.data.frame(.x), .id="id") %>% 
-  set_colnames("Regions")
-colnames(rgns)[2] = c("StructureAcronym")
 
 
 md.hdbr = md.hdbr[,1:15]
@@ -312,10 +346,11 @@ md.hdbr %<>%
   mutate(AgeInterval = add_feature(.$Age, age_intervals))  %>%
   left_join(strc_acr, by = "Structure") %>% 
   left_join(rgns, by = "StructureAcronym") %>% 
-  mutate(Karyotype = toupper(Karyotype)) %>% 
-  mutate(Sex = ifelse(str_detect(Karyotype,"XX"), "F",
-                      ifelse(str_detect(Karyotype, "XY"), "M", "Unknown" )), 
-         Diagnosis = c("Control"))
+  mutate(Sex = toupper(Sex)) %>% 
+  mutate(Sex = ifelse(str_detect(Sex,"XX"), "F",
+                      ifelse(str_detect(Sex, "XY"), "M", "Unknown" )), 
+         Diagnosis = c("Control"), 
+         Period = c("Prenatal"))
 
 md = colData(hdbr) %>% 
   as.data.frame() %>% 
@@ -326,7 +361,12 @@ md.hdbr %<>%
   mutate(Hemisphere = gsub("right", "R", Hemisphere), 
          Hemisphere = gsub("left", "L", Hemisphere), 
          Hemisphere = gsub("frontal", "Frontal", Hemisphere))
+
+md.hdbr %<>% 
+  left_join(hdbr_supp, by = c("DonorID"))
 full.md.hdbr =left_join(md.hdbr, md)
+
+full.md.hdbr
 ```
 
 
