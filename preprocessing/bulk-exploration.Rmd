@@ -125,7 +125,7 @@ e$Raw <- lapply(e$Raw, function(x) {
 
 - Heatmap of available metadata attributes 
 
-```{r}
+```{r} 
 dataset_annot = merge(annot_plot$GTEx, annot_plot$BrainSeq, 
                       by = "BITColumnName",
                       all = TRUE)
