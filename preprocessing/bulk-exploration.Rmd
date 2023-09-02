@@ -67,8 +67,7 @@ directory = file.path("/home/neuro/Documents/Brain_integrative_transcriptome/bra
 pattern = "/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/annotations/"
 
 
-of_interest = c("SampleID",  "DonorID", "PMI", "RIN","mito_Rate", "rRNA_rate", "RIN", "AgeNumeric", "Sex", 
-                "LibrarySize","AgeInterval", "Regions", "StructureAcronym", "Ethnicity", "Diagnosis", 
+of_interest = c("SampleID",  "DonorID", "PMI", "RIN","mito_Rate", "rRNA_rate", "RIN", "AgeNumeric", "Sex", "AgeInterval", "Regions", "StructureAcronym", "Ethnicity", "Diagnosis", 
                 "CellType", "PMI","TotalNReads", "pH", "Hemisphere", "MappingRate", "HardyScale")
 
 for (f in directory){
@@ -142,22 +141,24 @@ dataset_annot = merge(annot_plot$`Ramaker-2017`, dataset_annot,
 dataset_annot= dataset_annot %>% 
     mutate_all(~replace(., is.na(.), 0)) 
 
-dataset_annot = dataset_annot[-c(16:18),]
+dataset_annot = dataset_annot[-c(15:17),]
 
 
 dataset_annot$labels = c("Phenotype", "Phenotype","Phenotype", "Phenotype", "Phenotype",
-                         "Phenotype",
-                         "Sample", "Seq","Seq", "Seq", "Seq", "Seq", "Sample",
-                         "Seq", "Seq", "Sample", "Phenotype", "Sample", "Seq")
+                         "Phenotype", "Sample", "Seq","Seq", "Seq",
+                         "Seq", "Sample", "Seq","Seq", "Sample",
+                         "Phenotype", "Sample", "Seq")
 
+```
 
+```{r}
 
 dataset_annot %<>% 
     arrange(labels) %>% 
   dplyr::select(-labels) %>%
   column_to_rownames("BITColumnName")
 
- names = rownames(dataset_annot) 
+names = rownames(dataset_annot) 
 
 dataset_annot = data.frame(apply(dataset_annot,2, function(x) as.numeric(gsub("Yes", 1,x))))
 rownames(dataset_annot) = names
