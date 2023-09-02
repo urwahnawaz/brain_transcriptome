@@ -23,7 +23,7 @@ SME2MPRT,End_2_mapping_rate,Yes,Sequencing metrics
 SMCHMPRS,ChimericPairs,Yes,Sequencing metrics
 SMNTRART,IntragenicRate,Yes,Sequencing metrics
 SMNUMGPS,No_of_Gaps,Yes,Sequencing metrics
-SMMAPRT,MappingRate_total,Yes,Sequencing metrics
+SMMAPRT,MappingRate,Yes,Sequencing metrics
 SMEXNCRT,ExonicRate,Yes,Sequencing metrics
 SM550NRM,BasedNormalised,Yes,Sequencing metrics
 SMGNSDTC,GenesDetected,Yes,Sequencing metrics

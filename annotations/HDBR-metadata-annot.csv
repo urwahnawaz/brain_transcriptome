@@ -168,3 +168,5 @@ NA,AgeInterval,Yes,Phenotype
 NA,Diagnosis,Yes,Phenotype
 NA,Period,Yes,Phenotype
 time sample in transit (minutes),PMI,Yes,Sequencing metrics
+NA,Regions,Yes,Sample charactertics
+NA,AgeNumeric,Yes,Phenotype

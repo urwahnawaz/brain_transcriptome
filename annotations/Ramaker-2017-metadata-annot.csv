@@ -155,3 +155,4 @@ NA,Regions,Yes,Sample charactertics
 NA,Age_rounded,No,Phenotype
 NA,Period,Yes,Phenotype
 NA,AgeInterval,Yes,Phenotype
+NA,AgeNumeric,Yes,Phenotype
