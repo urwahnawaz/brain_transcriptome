@@ -164,6 +164,7 @@ recount_pred.pred.type,PredictionType,No,Sequencing metrics
 recount_pred.curated.cell_type,CellTypePrediction,No,Sequencing metrics
 recount_pred.curated.cell_line,CellLinePrediction,No,Sequencing metrics
 BigWigURL,BigWigFile,No,Sequencing metrics
-NA,AgeInterval,Yes,
-NA,Diagnosis,Yes,
-NA,Period,Yes,
+NA,AgeInterval,Yes,Phenotype
+NA,Diagnosis,Yes,Phenotype
+NA,Period,Yes,Phenotype
+time sample in transit (minutes),PMI,Yes,Sequencing metrics
