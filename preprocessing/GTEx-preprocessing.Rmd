@@ -40,6 +40,13 @@ library(glmpca)
 library(naniar)
 ```
 
+```{r}
+thresh <- function(x) {
+      y <- x > 1
+      keep <- rowSums(y) > (ncol(y) / 10)
+      return(x[keep,])
+    }
+```
 
 # Background 
 
@@ -132,4 +139,55 @@ write.csv(md, file = file.path(dir,"Formatted/GTEx-metadata.csv"))
 
 ```
 
+### Metadata 
 
+```{r}
+annot_seq = annot %>% 
+  dplyr::filter(Type == "Sequencing metrics")
+md.clean = md %>% 
+  dplyr::select(SampleID, contains(annot_seq$BITColumnName))
+md.clean = md.clean %>% select_if(~ !any(is.na(.)))
+md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
+```
+
+- Correlation of metadata variables 
+
+```{r}
+M = cor(data.matrix(md.clean), use = "complete.obs")
+corrplot(M, order='AOE',
+         method = "circle", type = "upper", 
+         number.cex = .50, 
+         tl.cex=0.75)
+
+
+```
+
+## Variance partition
+
+
+```{r}
+gtex.vp = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-varPart.csv", 
+                   header= TRUE, row.names =1)
+gtex_plot = plotVarPart(gtex.vp %>% 
+              as.data.frame() %>% 
+              dplyr::select(Regions, rRNA_rate,DateofBatch, TypeofBatch, RIN,
+                          BSS_Collection_side_code, everything()))
+
+
+
+ggsave(gtex_plot, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/varPart_gtex.svg",
+       height = 6, 
+       width = 8, 
+       units = "in")
+```
+
+#  Deconvolution
+
+```{r}
+gtex.decon = run_dtg(exp ,sigsBrain$MB) 
+```
+
+```{r}
+write.csv(gtex.decon, file = "/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-decon-MB.csv")
+```

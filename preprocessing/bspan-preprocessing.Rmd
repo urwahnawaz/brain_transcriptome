@@ -189,7 +189,9 @@ md = columns.metadata %>%
              Age = gsub(" ","_", .$Age)) %>%  
       mutate(SampleID = paste(DonorID, Age, StructureAcronym, Stage, sep = "_"), 
              age_for_mRIN = gsub("_", "", .$Age), 
-             DonorName = gsub("\\.","_", .$DonorName)) %>% 
+             DonorName = gsub("\\.","_", .$DonorName),
+            StructureAcronym = gsub("DFC", "DLPFC", StructureAcronym), 
+            StructureAcronym = gsub("MFC", "ACC", StructureAcronym)) %>% 
       mutate('sample name' = paste(DonorName, age_for_mRIN,Sex ,StructureAcronym, sep = "//")) %>% 
       dplyr::select("SampleID", everything())
 
@@ -282,6 +284,33 @@ write.csv(md, file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/B
 ```
 
 
+- Correlation of technical metadata variables 
+
+```{r}
+md.clean = md %>% select_if(~ !any(is.na(.)))
+md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
+```
+
+```{r}
+M = cor(data.matrix(md.clean), use = "complete.obs")
+corrplot(M, order='AOE',
+         method = "number", type = "upper", 
+         number.cex = .50)
+
+
+```
+
+```{r}
+corrplot(cor(md.clean),
+  method = "number",
+  type = "upper" # show only upper side
+)
+```
+
+
+```{r}
+rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame() 
+```
 
 ## Deconvolution 
 
@@ -328,6 +357,11 @@ gof_res %>%
   ylab("Goodness of fit (r)")
 ```
 
+### Export 
+
+```{r}
+write.csv(bspan.decon , file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-decon.csv")
+```
 
 ## Selection of metadata variables for BITHub 
 
@@ -438,4 +472,48 @@ pc$x %>%
 #     ) 
 ```
 
-- Variance partition
+## Variance partition
+
+```{r}
+md %<>% 
+  mutate(PMI = as.numeric(PMI), 
+         RIN = as.numeric(RIN),
+         pH= as.numeric(pH))
+```
+
+```{r}
+form.bspan <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + (1|Period) + (1|Regions) + RIN +  pH + PMI + DonorID
+C.bspan = canCorPairs(form.bspan, md)
+plotCorrMatrix( C.bspan )
+```
+
+
+```{r}
+
+bspan.exp.filt <- exp[apply(exp >= 1, 1, sum) >= 0.1*ncol(exp),]
+
+varPar.bspan <- fitExtractVarPartModel(bspan.exp.filt, form.bspan, md)
+```
+
+
+```{r}
+var.genes.bspan = plotVarPart(varPar.bspan %>% 
+                                as.data.frame() %>%
+                                dplyr::select(Period, Regions, AgeNumeric,PMI,RIN,Sex,
+                                              StructureAcronym,
+                                              DonorID, everything()))
+var.total.bspan =plotPercentBars(varPar.bspan [1:10,] )
+
+grid.arrange(var.genes.bspan, var.total.bspan , ncol = 2)
+
+write.csv(varPar.bspan, file = "/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-varPart.csv")
+```
+
+```{r}
+ggsave(var.genes.bspan , 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/varPart_bspan.svg",
+       height = 6, 
+       width = 8, 
+       units = "in")
+
+```

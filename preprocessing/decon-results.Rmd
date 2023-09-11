@@ -1,0 +1,312 @@
+---
+title: "Deconvolution results"
+author: "Urwah Nawaz"
+date: "2023-09-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    autodep = TRUE,
+    eval = TRUE,
+	echo = FALSE,
+	warning = FALSE,
+	message = FALSE
+)
+```
+
+# Setup 
+
+```{r libraries}
+library(recount3)
+library(DT)
+library(dplyr)
+library(tidyr)
+source("functions.R")
+source("../signatures/libraries.R")
+source("../signatures/functions.R")
+load("../../DeconRNAShiny/sigsBrain.rda")
+library(pander)
+library(gridExtra)
+library(variancePartition)
+library(corrplot)
+library(edgeR)
+library(purrr)
+```
+
+
+```{r}
+
+brain.dir =file.path("/home/neuro/Documents/BrainData/Bulk")
+e <- list()
+  
+e$GTEx <- read.csv(file.path(brain.dir, "/GTEx/Formatted/GTEx-exp.csv"), 
+                       check.names = FALSE, row.names = 1)
+e$PE <- read.csv(file.path(brain.dir, "/PsychEncode/Formatted/PsychEncode-exp.csv"), 
+                     row.names =1, check.names = FALSE) %>% 
+  column_to_rownames("EnsemblID")
+e$BSpan <- read.csv(file.path(brain.dir, "/BrainSpan/Formatted/BrainSpan-exp.csv"),
+                        check.names = FALSE, row.names=1)
+e$BSeq <- read.csv(file.path(brain.dir,"/Brainseq/Formatted/BrainSeq-exp.csv"), 
+                       check.names = FALSE, row.names = 1)
+
+e$HDBR <- read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-exp.csv"), 
+                       check.names = FALSE, row.names = 1) %>% 
+  column_to_rownames("EnsemblID")
+
+e$Ram <- read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-exp.csv"), 
+                       check.names = FALSE, row.names = 1) %>% 
+  column_to_rownames("EnsemblID")
+```
+
+```{r}
+md = list()
+md$GTEx <- read.csv(file.path(brain.dir, "/GTEx/Formatted/GTEx-metadata.csv"), 
+                    check.names = FALSE, row.names = 1)
+md$PE <- read.csv(file.path(brain.dir,"/PsychEncode/Formatted/PsychEncode-metadata.csv"),
+                  check.names = FALSE)
+md$BSeq <- read.csv(file.path(brain.dir,"/Brainseq/Formatted/BrainSeq-metadata.csv"), 
+                    check.names = FALSE)
+md$HDBR <- read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-metadata.csv"), 
+                    check.names = FALSE, row.names = 1) 
+md$Ram <- read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-metadata.csv"),
+                   check.names = FALSE, row.names = 1)
+
+md$BSpan <- read.csv(file.path(brain.dir,
+                               "/BrainSpan/Formatted/BrainSpan-metadata.csv"),
+                     check.names = FALSE)
+```
+
+```{r}
+decon = list()
+
+decon$GTEx <- read.csv(file.path(brain.dir, "/GTEx/Formatted/GTEx-decon-MB.csv"), 
+                       check.names = FALSE)
+decon$PE <- read.csv(file.path(brain.dir, "/PsychEncode/Formatted/PsychEncode-decon.csv"), 
+                     row.names =1, check.names = FALSE)
+decon$BSpan <- read.csv(file.path(brain.dir, "/BrainSpan/Formatted/BrainSpan-decon.csv"),
+                        check.names = FALSE)
+decon$BSeq <- read.csv(file.path(brain.dir,"/Brainseq/Formatted/BrainSeq-decon.csv"), 
+                       check.names = FALSE)
+
+decon$HBDR <- read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-decon.csv"), 
+                       check.names = FALSE, row.names = 1) 
+
+decon$Ram <- read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-decon.csv"), 
+                       check.names = FALSE, row.names = 1)
+
+
+```
+
+```{r}
+gof_res = list()
+
+datasets = c("BSpan", "GTEx", "BSeq", "PE", "Ram", "HDBR")
+
+for (res in datasets) {
+  message(paste("Subsetting samples for", res))
+  exp = e[[res]]
+  decon_res = decon[[res]]
+  md_sub = md[[res]] 
+  md_sub = md_sub %>% 
+    dplyr::select(SampleID, Regions,
+                              StructureAcronym, Period, 
+                              AgeInterval)
+  gof_fit = write.gof(exp, decon_res, 
+                    signatureUsed = sigsBrain$MB) 
+  gof_fit = gof_fit %>% 
+    mutate(dataset = res) %>% 
+    rownames_to_column("SampleID") %>%
+  mutate(SampleID = ifelse(dataset == "BSpan", 
+                           gsub("X", "", SampleID), SampleID)) %>% 
+    mutate(SampleID = gsub("\\.", "-", SampleID)) %>% 
+    left_join(md_sub, by = "SampleID")
+  gof_res[[paste0(res)]] = gof_fit
+}
+
+gof_res$GTEx %<>%
+  mutate(SampleID = gsub("\\.", "-", SampleID))
+
+gof_res$BSpan %<>%
+  mutate(SampleID = gsub("X", "", SampleID)) %>%
+  mutate(SampleID = gsub("\\.", "-", SampleID)) 
+
+for (res in datasets) {
+  md_sub = md[[res]] 
+  md_sub = md_sub %>% 
+    dplyr::select(SampleID, Regions,
+                              StructureAcronym, Period, 
+                              AgeInterval)
+  gof_fit = gof_res[[res]]
+  gof_fit = gof_fit %>% 
+    left_join(md_sub)
+  gof_res[[paste0(res)]] = gof_fit
+  
+}
+
+gof_regions = gof_res %>% 
+    do.call(rbind,.) %>%
+    as.data.frame() %>%
+    drop_na(Regions) %>%
+    ggplot(aes(Regions, r, fill = Regions)) + geom_violin(width=1, alpha = 0.85) +
+      geom_boxplot(width=0.1, color="white") +
+      theme_bw() + scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357", 
+                                             "Spinal Cord" = "#C6D14A")) + 
+  geom_hline(yintercept = c(0.5,0.7), color = "grey",linetype='dotted') + 
+  ylab("Goodness of fit (r)") + facet_wrap(~dataset, scales = "free",  nrow = 6) + 
+  theme(legend.position = "none")
+
+ggsave(plot = gof_regions, 
+      filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/gof-decon-regions.svg", 
+      units = "in", 
+      width = 6.48, 
+      height = 12)
+```
+
+```{r}
+gof_period = gof_res %>% 
+    do.call(rbind,.) %>%
+    as.data.frame() %>%
+    drop_na(Regions) %>%
+  mutate(Period = factor(Period, levels=c("Prenatal", "Postnatal"))) %>% 
+    ggplot(aes(Period, r, fill = Period)) + geom_violin( alpha = 0.75) +
+      geom_boxplot(width=0.1, color="white") +
+      theme_bw() + scale_fill_manual(values = c("Prenatal" = "#FD84B8", 
+                                                "Postnatal" = "#54B4E6")) +
+  geom_hline(yintercept = c(0.5,0.7), color = "grey",linetype='dotted') + 
+  ylab("Goodness of fit (r)") + facet_wrap(~dataset, scales = "free", nrow = 6) + 
+  theme(legend.position = "none")
+
+ggsave(plot = gof_period, 
+      filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/gof-decon-period.svg", 
+      units = "in", 
+      width = 6.48, 
+      height = 12)
+```
+
+## Proportions of cell-type
+
+- GTEx
+
+```{r}
+colnames(decon$GTEx)[1] = c("SampleID")
+decon$GTEx %>%
+  as.data.frame %>%
+  dplyr::select(SampleID, Neurons, Astrocytes, 
+                Oligodendrocytes, Microglia, Endothelia) %>% 
+  melt() %>% 
+  left_join(md$GTEx) %>% 
+  drop_na(Regions) %>%
+  ggplot(aes(x = Regions, y = value, fill = Regions)) + geom_boxplot() + 
+  scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357", 
+                                             "Spinal Cord" = "#C6D14A")) +
+  theme_bw() + facet_wrap(~variable, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+- BrainSpan 
+```{r}
+colnames(decon$BSpan)[1] = c("SampleID")
+decon$BSpan %>%
+  as.data.frame %>%
+  dplyr::select(SampleID, Neurons, Astrocytes, 
+                Oligodendrocytes, Microglia, Endothelia) %>% 
+  melt() %>% 
+  left_join(md$BSpan) %>% 
+  drop_na(Regions) %>%
+  ggplot(aes(x = Regions, y = value, fill = Regions)) + geom_boxplot() + 
+  scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357", 
+                                             "Spinal Cord" = "#C6D14A")) +
+  theme_bw() + facet_wrap(~variable, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+- BrainSeq 
+```{r}
+colnames(decon$BSeq)[1] = c("SampleID")
+decon$BSeq %>%
+  as.data.frame %>%
+  dplyr::select(SampleID, Neurons, Astrocytes, 
+                Oligodendrocytes, Microglia, Endothelia) %>% 
+  melt() %>% 
+  left_join(md$BSeq) %>% 
+  drop_na(Regions) %>%
+  ggplot(aes(x = Regions, y = value, fill = Regions)) + geom_boxplot() + 
+  scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357", 
+                                             "Spinal Cord" = "#C6D14A")) +
+  theme_bw() + facet_wrap(~variable, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+- PsychEncode 
+
+```{r}
+#colnames(decon$PE)[1] = c("SampleID")
+decon$PE %>%
+  rownames_to_column("SampleID") %>%
+  as.data.frame %>%
+  dplyr::select(SampleID, Neurons, Astrocytes, 
+                Oligodendrocytes, Microglia, Endothelia) %>% 
+  melt() %>% 
+  left_join(md$PE) %>% 
+  drop_na(Regions) %>%
+  ggplot(aes(x = StructureAcronym, y = value, fill = StructureAcronym)) + geom_boxplot() + 
+  scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357", 
+                                             "Spinal Cord" = "#C6D14A")) +
+  theme_bw() + facet_wrap(~variable, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+- HDBR
+
+```{r}
+#colnames(decon$PE)[1] = c("SampleID")
+decon$HBDR %>%
+  rownames_to_column("SampleID") %>%
+  as.data.frame %>%
+  dplyr::select(SampleID, Neurons, Astrocytes, 
+                Oligodendrocytes, Microglia, Endothelia) %>% 
+  melt() %>% 
+  left_join(md$HDBR) %>% 
+  drop_na(Regions) %>%
+  ggplot(aes(x = Regions, y = value, fill = Regions)) + geom_boxplot() + 
+  scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357", 
+                                             "Spinal Cord" = "#C6D14A")) +
+  theme_bw() + facet_wrap(~variable, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+- Ramaker 
+
+```{r}
+#colnames(decon$PE)[1] = c("SampleID")
+decon$Ram %>%
+  rownames_to_column("SampleID") %>%
+  as.data.frame %>%
+  dplyr::select(SampleID, Neurons, Astrocytes, 
+                Oligodendrocytes, Microglia, Endothelia) %>% 
+  melt() %>% 
+  left_join(md$Ram) %>% 
+  drop_na(Regions) %>%
+  ggplot(aes(x = Regions, y = value, fill = Regions)) + geom_boxplot() + 
+  scale_fill_manual(values = c("Cortex" = "#E85772", 
+                                             "Subcortex" = "#878DC5", 
+                                             "Cerebellum" = "#FFD357", 
+                                             "Spinal Cord" = "#C6D14A")) +
+  theme_bw() + facet_wrap(~variable, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90))
+```

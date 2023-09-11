@@ -35,7 +35,9 @@ library(EnsDb.Hsapiens.v86)
 library(singscore)
 library(ggplot2)
 library(UpSetR)
+library(patchwork)
 library(pheatmap)
+library(ggpubr)
 ```
 
 ```{r annotations}
@@ -105,11 +107,11 @@ e$Raw$BSpan <- read.csv(file.path(brain.dir, "/BrainSpan/Formatted/BrainSpan-exp
 e$Raw$BSeq <- read.csv(file.path(brain.dir,"/Brainseq/Formatted/BrainSeq-exp.csv"), 
                        check.names = FALSE)
 
-e$Raw$HBDR <- read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-exp.csv"), 
+e$Raw$HDBR <- read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-exp.csv"), 
                        check.names = FALSE, row.names = 1) 
 
-e$Raw$Ramaker <- read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-exp.csv"), 
-                       check.names = FALSE, row.names = 1)
+#e$Raw$Ram <- read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-exp.csv"), 
+ #                      check.names = FALSE, row.names = 1)
 
 
 e$Raw <- lapply(e$Raw, function(x) {
@@ -119,7 +121,26 @@ e$Raw <- lapply(e$Raw, function(x) {
   })
 ```
 
+```{r metadata-load}
+md = list()
+md$GTEx <- read.csv(file.path(brain.dir, "/GTEx/Formatted/GTEx-metadata.csv"), 
+                       check.names = FALSE, row.names = 1)
+md$PE <- read.csv(file.path(brain.dir,"/PsychEncode/Formatted/PsychEncode-metadata.csv"),
+                  check.names = FALSE)
+md$BSeq <- read.csv(file.path(brain.dir,"/Brainseq/Formatted/BrainSeq-metadata.csv"), 
+                       check.names = FALSE)
+md$HDBR <- read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-metadata.csv"), 
+                       check.names = FALSE, row.names = 1) 
+#md$Ram <- read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-metadata.csv"),
+ #                      check.names = FALSE, row.names = 1)
 
+md$BSpan <- read.csv(file.path(brain.dir,
+                               "/BrainSpan/Formatted/BrainSpan-metadata.csv"),
+                     check.names = FALSE)
+  
+
+
+```
 
 # Metadata attributes 
 
@@ -135,8 +156,8 @@ dataset_annot = merge(annot_plot$HDBR, dataset_annot,
                       by = "BITColumnName", all = TRUE)
 dataset_annot = merge(annot_plot$PsychEncode, dataset_annot,  
                       by = "BITColumnName", all = TRUE)
-dataset_annot = merge(annot_plot$`Ramaker-2017`, dataset_annot,  
-                      by = "BITColumnName", all = TRUE)
+#dataset_annot = merge(annot_plot$`Ramaker-2017`, dataset_annot,  
+ #                     by = "BITColumnName", all = TRUE)
 
 dataset_annot= dataset_annot %>% 
     mutate_all(~replace(., is.na(.), 0)) 
@@ -169,7 +190,7 @@ rownames(dataset_annot) = names
 ```
 
 ```{r}
- md.summary = dataset_annot[,c(6,4,3,5,1,2)] %>% t() %>%
+ md.summary = dataset_annot[,c(5,3,2,4,1)] %>% t() %>%
     pheatmap(cellheight = 15, 
              cellwidth = 15, 
              cluster_rows = FALSE, 
@@ -199,19 +220,21 @@ hdbr.tech = annot_all$HDBR %>%
   dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
 pe.tech = annot_all$PsychEncode %>%
   dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
-ram.tech = annot_all$`Ramaker-2017` %>%
-  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
+#ram.tech = annot_all$`Ramaker-2017` %>%
+#  dplyr::filter(`Include..Yes.No....Interest` == "Yes" & Type == "Sequencing metrics")
 
 
 x= list( "BrainSeq" = bseq.tech$BITColumnName, 
           "BrainSpan" = bspan.tech$BITColumnName, 
           "GTEx" = gtex.tech$BITColumnName, 
           "HDBR" = hdbr.tech$BITColumnName, 
-          "PsychEncode" = pe.tech$BITColumnName, 
-          "Ramaker" = ram.tech$BITColumnName)
+          "PsychEncode" = pe.tech$BITColumnName
+         #, 
+        #  "Ramaker" = ram.tech$BITColumnName
+         )
 
 
-UpSetR::upset(fromList(x), sets.bar.color = c ("#75C7A0","#E11F28","#7DA1D4","#F1605F", "#49215F"))
+UpSetR::upset(fromList(x), sets.bar.color = c ("#75C7A0","#E11F28","#7DA1D4","#F1605F"))
 ```
 
 
@@ -234,15 +257,22 @@ e$Thresh_Log_Scale <- lapply(e$Log, scale)
 ```{r}
 ## Histogram of median expression
   # collect median expression values across samples for every dataset
+#p <- lapply(e, function(x) {
+#    # lapply(x, rowMeans)
+ #   lapply(x, function(y) {
+ #     apply(y, 1, median)
+#    })
+#  })
+
 p <- lapply(e, function(x) {
     # lapply(x, rowMeans)
     lapply(x, function(y) {
-      apply(y, 1, median)
+      apply(y, 1, mean)
     })
   })
   
 p <- melt(p)
-colnames(p) <- c("MedianExp", "Dataset", "Transform")
+colnames(p) <- c("MeanExp", "Dataset", "Transform")
 p$Dataset <- factor(p$Dataset)
 ```
 
@@ -265,23 +295,54 @@ levels(p$Dataset) <- paste0(names(x), " (n=", x, ")")
 ```
 
 ```{r}
-ggplot(p, aes(x = MedianExp, colour = Dataset)) +
+no_filt= p %>% 
+  dplyr::filter(Transform == "Log" | Transform == 
+                  "Log_Scale") %>%
+  ggplot(aes(x = MeanExp, colour = Dataset)) +
+   scale_color_manual(values = c("#F75E5E", 
+                                 "#49165E",
+                                "#78A2EB", 
+                               "#E11F28", 
+                                 "#F9AD79")) +
     geom_density() +
     # geom_histogram() +
     facet_wrap(~Transform, scales = "free") +
     theme_bw() +
-    labs(y = "Density", x = "Median Expression Across Samples", title = "No Expression Filter")
-  
+    labs(y = "Density", x = "Mean Expression Across Samples", title = "No Expression Filter") +
+  theme(legend.position = "top", 
+        axis.text = element_text(size =10))
+
+
+no_filt
+ggsave(no_filt, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/no-fit-desnity-mean.svg", 
+       height = 6, 
+       width =10, 
+       units = "in")
+ 
 ```
 
 
 ```{r}
-ggplot(t, aes(x = MedianExp, colour = Dataset)) +
+filt =ggplot(t, aes(x = MeanExp, colour = Dataset)) +
+  scale_color_manual(values = c("#F75E5E", 
+                                 "#49165E",
+                                "#78A2EB", 
+                               "#E11F28", 
+                                 "#F9AD79", 
+                                 "#74C69D")) +
     geom_density() +
     # geom_histogram() +
     facet_wrap(~Transform, scales = "free") +
     theme_bw() +
     labs(y = "Density", x = "Median Expression Across Samples", title = ">1 RPKM in 10% of Samples")
+
+filt
+ggsave(filt, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/filt-desnity.svg", 
+       height = 6, 
+       width =8, 
+       units = "in")
 ```
 
 
@@ -300,7 +361,7 @@ for (j in names(e$Raw)) {
     q$Thresh[[j]] <- cbind(p$Thresh[[j]], p$Thresh_Log_Scale[[j]])
   }
   
-  scatterplot <- function(x, y, lim = 100) { # x is Raw/Thresh, y is dataset
+scatterplot <- function(x, y, lim = 100) { # x is Raw/Thresh, y is dataset
     z <- q[[x]][[y]]
     
     # filter to set limit
@@ -332,6 +393,13 @@ p$CR <- scatterplot("Raw", "BSeq")
 p$CT <- scatterplot("Thresh", "BSeq")
 p$DR <- scatterplot("Raw", "GTEx")
 p$DT <- scatterplot("Thresh", "GTEx")
+#p$ER <- scatter_plot("Raw", "Ram")
+#p$EL <- scatter_plot("Thresh", "Ram")
+#p$FR <- scatter_plot("Raw", "HDBR")
+#p$FL <- scatter_plot("Thresh", "HDBR")
+```
+```{r}
+plot_grid(plotlist = p, ncol = 2)
 ```
 
 
@@ -352,8 +420,10 @@ gtex <- thresh(e$Raw$GTEx)
 span <- thresh(e$Raw$BSpan)
 seq <- thresh(e$Raw$BSeq)
 pe <- thresh(e$Raw$PE)
-hdbr <- thresh(e$Raw$HBDR)
-ram <- thresh(e$Raw$Ramaker)
+hdbr <- thresh(e$Raw$HDBR)
+#ram <- thresh(e$Raw$Ram)
+
+
 ```
 
 ```{r}
@@ -361,15 +431,14 @@ common <- intersect(rownames(gtex), rownames(span))
 common <- intersect(common, rownames(seq))
 common <- intersect(common, rownames(pe))
 common <- intersect(common, rownames(hdbr))
-common <- intersect(common, rownames(ram))
+#common <- intersect(common, rownames(ram))
 
 
 merge <- cbind(gtex[common,], 
                span[common,], 
                seq[common,], 
                pe[common,],
-               hdbr[common,], 
-               ram[common,])
+               hdbr[common,])
 ```
 
 ```{r}
@@ -383,33 +452,33 @@ q.merge <- log2(q.merge + 0.5)
 ```{r}
 m.gtex =read.csv(file.path(brain.dir, "/GTEx/Formatted/GTEx-metadata.csv")) %>% 
   dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
-                "Regions", "StructureAcronym") %>% 
+                "Regions", "StructureAcronym", "DonorID") %>% 
   mutate(Dataset = c("GTEx"))
 
 m.span= read.csv(file.path(brain.dir, "/BrainSpan/Formatted/BrainSpan-metadata.csv")) %>% 
   dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
-                "Regions", "StructureAcronym")  %>% 
+                "Regions", "StructureAcronym", "DonorID")  %>% 
   mutate(Dataset = c("BrainSpan"))
 m.seq=read.csv(file.path(brain.dir, "/Brainseq/Formatted/BrainSeq-metadata.csv")) %>% 
   dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
-                "Regions", "StructureAcronym")  %>% 
+                "Regions", "StructureAcronym", "DonorID")  %>% 
   mutate(Dataset = c("Brainseq"))
 
 m.pe=read.csv(file.path(brain.dir, "/PsychEncode/Formatted/PsychEncode-metadata.csv")) %>% 
-  dplyr::select("SampleID", "AgeInterval", "Sex", "Period", "Regions", "StructureAcronym")  %>% 
+  dplyr::select("SampleID", "AgeInterval", "Sex", "Period", "Regions", "StructureAcronym", "DonorID")  %>% 
   mutate(Dataset = c("PsychEncode"))
 
 m.hdbr=read.csv(file.path(brain.dir, "/HDBR/Formatted/HDBR-metadata.csv")) %>% 
   dplyr::select("SampleID", "AgeInterval", "Sex", 
-                "Regions", "StructureAcronym") %>% 
+                "Regions", "StructureAcronym", "DonorID") %>% 
   mutate(Period = c("Prenatal"), 
          Dataset = c("HBDR"))
 
 m.ram=read.csv(file.path(brain.dir, "/Ramakar/Formatted/Ramaker-metadata.csv")) %>% 
   dplyr::select("SampleID", "AgeInterval", "Sex", "Period",
-                "Regions", "StructureAcronym") %>% 
-  mutate(Dataset = c("Ramaker")) %>% 
-  dplyr::filter(SampleID %in% colnames(ram))
+                "Regions", "StructureAcronym", "DonorID") %>% 
+  mutate(Dataset = c("Ramaker")) #%>% 
+  #dplyr::filter(SampleID %in% colnames(ram))
 
 
 m.merge <- rbind(m.gtex, m.span,m.seq,
@@ -421,22 +490,706 @@ m.merge <- rbind(m.gtex, m.span,m.seq,
 ## PCA
 pca <- princomp(q.merge, cor = TRUE) # ~10 minutse
   
-plot.data <- as.data.frame(pca$loadings[,1:2])
-colnames(plot.data) <- c("PC1", "PC2")
-plot.data <- data.frame(plot.data, m.merge)
+plot.data <- as.data.frame(pca$loadings[,1:3])
+colnames(plot.data) <- c("PC1", "PC2", "PC3")
+plot.data = plot.data[rownames(plot.data) %in% m.merge$SampleID,]
+m.merge = m.merge[m.merge$SampleID %in% rownames(plot.data),]
+#plot.data <- data.frame(plot.data, m.merge)
 
-plot.data %>% 
+pca_1 = plot.data %>% 
+  rownames_to_column("SampleID") %>%
+  left_join(m.merge, by = "SampleID") %>%
  # dplyr::filter(Dataset != "Ramaker") %>%
-  ggplot(aes(x = PC1, y = PC2, color = Dataset)) +
-    geom_point() 
+  ggplot(aes(x = PC1, y = PC2, color = Dataset, shape = Period, alpha = Dataset)) +
+    geom_point(size =5) + 
+  scale_color_manual(values =c("Brainseq" ="#F1605F",
+                               "BrainSpan" = "#49215F", 
+                               "GTEx" = "#7DA1D4", 
+                               "HBDR" = "#E11F28", 
+                               "PsychEncode" = "#FAAD79")) +
+  theme_bw() + 
+   labs(
+    x = glue("PC1 ({percent(pca$sdev[[1]]^2 / sum(pca$sdev^2), 0.1)})"),
+    y = glue("PC2 ({percent(pca$sdev[[2]]^2 / sum(pca$sdev^2), 0.1)})"),
+    colour = "Dataset",
+    shape = "Period"
+  ) + scale_alpha_manual(values = c("Brainseq" = 0.45, 
+                                    "BrainSpan" = 0.65, 
+                                    "GTEx" = 0.65,
+                                    "HBDR" = 1, 
+                                    "PsychEncode" = 0.65)) +
+  theme(axis.text = element_text(size=12)) + scale_shape_manual(values = c("Postnatal" =0, 
+                                                                           "Prenatal" = 19))
+
+pca_1 
   
 ```
 
 ```{r}
-plot.data %>% 
-  rownames_to_column("SampleID") %>% 
+pca_2 =plot.data %>% 
+  rownames_to_column("SampleID") %>%
+  left_join(m.merge, by = "SampleID") %>%
+ # dplyr::filter(Dataset != "Ramaker") %>%
+  ggplot(aes(x = PC2, y = PC3, color = Dataset, shape = Period, alpha = Dataset)) +
+   geom_point(size =5) + 
+  scale_color_manual(values =c("Brainseq" ="#F1605F",
+                               "BrainSpan" = "#49215F", 
+                               "GTEx" = "#7DA1D4", 
+                               "HBDR" = "#E11F28", 
+                               "PsychEncode" = "#FAAD79", 
+                               "Ramaker" = "#75C7A0")) +
+  theme_bw() + 
+   labs(
+    x = glue("PC2 ({percent(pca$sdev[[2]]^2 / sum(pca$sdev^2), 0.1)})"),
+    y = glue("PC3 ({percent(pca$sdev[[3]]^2 / sum(pca$sdev^2), 0.1)})"),
+    colour = "Dataset",
+    shape = "Period"
+  ) +  scale_alpha_manual(values = c("Brainseq" = 1, 
+                                    "BrainSpan" = 0.65, 
+                                    "GTEx" = 0.65,
+                                    "HBDR" = 0.45, 
+                                    "PsychEncode" = 0.65,
+                                    "Ramaker" = 0.65)) +
+  theme(axis.text = element_text(size=12))
+
+pca_2
+```
+
+
+```{r}
+pca3 = plot.data %>% 
+  rownames_to_column("SampleID") %>%
+  left_join(m.merge, by = "SampleID") %>%
+ # dplyr::filter(Dataset != "Ramaker") %>%
+  ggplot(aes(x = PC1, y = PC2, color = Period, alpha = Period)) +
+    geom_point(size =5) + 
+  scale_color_manual(values =c("Prenatal" ="#F68D6F",
+                              "Postnatal" = "#6370E0")) +
+  #                             "GTEx" = "#7DA1D4", 
+   #                            "HBDR" = "#E11F28", 
+    #                           "PsychEncode" = "#FAAD79", 
+     #                          "Ramaker" = "#75C7A0")) +
+  theme_bw() + 
+   labs(
+    x = glue("PC1 ({percent(pca$sdev[[1]]^2 / sum(pca$sdev^2), 0.1)})"),
+    y = glue("PC2 ({percent(pca$sdev[[2]]^2 / sum(pca$sdev^2), 0.1)})"),
+    colour = "Period",
+    shape = "Dataset"
+  ) + scale_alpha_manual(values = c("Postnatal" = 0.50, 
+                                    "Prenatal" = 0.65)) +
+  theme(axis.text = element_text(size=12))
+        #                            "GTEx" = 0.65,
+         #                           "HBDR" = 0.45, 
+          #                          "PsychEncode" = 0.65,
+           #                         "Ramaker" = 0.65)) 
+
+
+ggsave(pca_1, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/PCA_1.svg", 
+       height = 4, 
+       width = 6, 
+       units = "in")
+ggsave(pca_2, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/PCA_2.svg", 
+        height = 6, 
+       width = 8, 
+       units = "in")
+
+
+ggsave(pca3, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/PCA_3.svg", 
+        height = 6, 
+       width = 8, 
+       units = "in")
+```
+
+
+```{r}
+corplot_1 = plot.data  %>%
+    as.data.frame() %>%
+  rownames_to_column("SampleID") %>%
   left_join(m.merge) %>%
-  ggplot(aes(x = PC1, y = PC2, colour = Regions)) +
-    geom_point()
+    dplyr::select(
+        PC1, PC2, PC3, 
+        Period, 
+        Regions, 
+        Dataset, 
+        Sex
+    ) %>% 
+  drop_na(Regions) %>%
+   mutate(Period = as.numeric(as.factor(Period)), 
+          Regions = as.numeric(as.factor(Regions)), 
+          Dataset = as.numeric(as.factor(Dataset)), 
+          Sex = as.numeric(as.factor(Sex))) %>%
+    cor() %>% 
+    corrplot(
+        type = "lower", 
+        diag = FALSE, 
+        addCoef.col = 1)
+
+#ggsave(corplot_1,
+ #      filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/corplot.svg", 
+  #      height = 6, 
+   #    width = 8, 
+    #   units = "in")
+```
+## Gene expression exploration 
+
+### Z-score overall
+
+```{r include=FALSE}
+zscore_overall = list()
+
+zscore_overall = lapply(e$Log_Scale, function(x){
+  name = names(x)
+  rowMeans(x) %>% 
+    melt()
+})
+```
+
+- Per region 
+
+```{r include=FALSE}
+regions = unique(m.merge$Regions)[-8]
+
+regions_scale = list()
+datasets = unique(names(e$Raw))
+
+for (data in datasets){
+  name = data
+  mat = e$Raw[[data]]
+  md_sub = md[[data]]
+  md_sub %<>% drop_na(Regions)
+  regions = unique(md_sub$Regions)
   
+  for(reg in regions){
+    md_region = md_sub[md_sub$Regions == reg,]
+    mat_sub = mat %>% 
+      dplyr::select(contains(md_region$SampleID))
+    mat_sub =  log2(mat_sub+0.5)
+    mat_sub = scale(mat_sub)
+    mat_sub = mat_sub %>% rowMeans() %>% melt()
+    regions_scale[[paste0(name,"_",reg)]] = mat_sub
+    
+    
+  }
+}
+```
+
+- Per period per region
+
+```{r include=FALSE}
+period_region_scale = list()
+datasets = unique(names(e$Raw))
+
+for (data in datasets){
+  name = data
+  mat = e$Raw[[data]]
+  md_sub = md[[data]]
+  md_sub %<>% drop_na(Period)
+  md_sub %<>% drop_na(Regions)
+  
+  for(i in unique(md_sub$Period)){
+    for(r in unique(md_sub$Regions)){
+      md_rP = md_sub[md_sub$Period == i & md_sub$Regions == r,]
+      mat_sub = mat %>% 
+      dplyr::select(contains(md_rP$SampleID))
+      mat_sub =  log2(mat_sub+0.5)
+      mat_sub = scale(mat_sub)
+      mat_sub = mat_sub %>% rowMeans() %>% melt()
+      period_region_scale[[paste0(name,"_",i, "_", r)]] = mat_sub
+      
+    }
+  }
+}
+```
+
+- per period 
+
+```{r include=FALSE}
+period_scale = list()
+datasets = unique(names(e$Raw))
+
+for (data in datasets){
+  name = data
+  mat = e$Raw[[data]]
+  md_sub = md[[data]]
+  md_sub %<>% drop_na(Period)
+  
+  for(i in unique(md_sub$Period)){
+    md_p = md_sub[md_sub$Period == i,]
+    mat_sub = mat %>% 
+      dplyr::select(contains(md_p$SampleID))
+    mat_sub =  log2(mat_sub+0.5)
+    mat_sub = scale(mat_sub)
+    mat_sub = mat_sub %>% rowMeans() %>% melt()
+    period_scale[[paste0(name,"_",i)]] = mat_sub
+    
+    
+  }
+}
+
+```
+
+# Comparing datasets overall
+```{r}
+plot1 = zscore_overall$HDBR %>%
+  set_colnames("HDBR") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(zscore_overall$GTEx %>%
+          set_colnames("GTEx") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000148773", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=HDBR,
+                            y = GTEx, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 5, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.45)) +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank(), 
+        axis.title = element_text(size = 13)) +
+  ggtitle("MKI67 (ENSG00000148773)")
+
+```
+
+```{r}
+plot2= zscore_overall$BSeq %>%
+  set_colnames("BSeq") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(zscore_overall$BSpan%>%
+          set_colnames("Bspan") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000176165", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=BSeq,
+                            y = Bspan, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("BrainSeq") + ylab("BrainSpan") + 
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("FOXG1 (ENSG00000176165)")
+```
+
+```{r}
+plot3 = zscore_overall$PE %>%
+  set_colnames("PsychEncode") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(zscore_overall$BSpan %>%
+          set_colnames("BrainSpan") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000043355", "No", "Color")) %>% 
+  arrange(Color) %>%
+  mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=PsychEncode,
+                            y = BrainSpan, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("ZIC2 (ENSG00000043355)")
+
+```
+
+- Comparing different stages and regions in different samples
+
+```{r}
+plot4 = period_region_scale$GTEx_Postnatal_Cerebellum %>%
+  set_colnames("GTEx_Cerebellum") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(period_region_scale$PE_Postnatal_Cortex %>%
+          set_colnames("PsychEncode_Cortex") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000043355", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=GTEx_Cerebellum,
+                            y = PsychEncode_Cortex, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("GTEx (postnatal cerebellum)") + 
+  ylab("PsychEncode (postnatal cortex)") +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("ZIC2 (ENSG00000043355)")
+
+```
+
+
+```{r}
+ period_scale$BSpan_Prenatal %>%
+  set_colnames("BrainSpan_Prenatal") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(period_scale$BSpan_Postnatal %>%
+          set_colnames("BrainSpan_Postnatal") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000148773", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=BrainSpan_Prenatal,
+                            y = BrainSpan_Postnatal, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("BrainSpan (prenatal)") + ylab("BrainSpan (postnatal)") +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("MKI67 (ENSG00000148773)")
+  
+```
+
+```{r}
+plot5=period_region_scale$HDBR_Prenatal_Cortex %>%
+  set_colnames("BSeq_prenatal_subcortex") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(period_region_scale$BSpan_Postnatal_Cortex%>%
+          set_colnames("Bspan_prenatal_subortex") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000176165", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=BSeq_prenatal_subcortex,
+                            y = Bspan_prenatal_subortex, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("HDBR (prenatal subcortex)") + 
+  ylab("BrainSpan (postnatal subcortex)") +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("FOXG1 (ENSG00000176165)") 
+```
+
+```{r}
+plot6 = period_region_scale$PE_Postnatal_Cortex %>%
+  set_colnames("PE_cortex") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(period_region_scale$BSpan_Prenatal_Cortex%>%
+          set_colnames("Bspan_prenatal_subortex") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000148773", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=PE_cortex,
+                            y = Bspan_prenatal_subortex, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("PsychEncode (postnatal cortex)") + 
+  ylab("BrainSpan (prenatal subcortex)") +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("MKI67 (ENSG00000148773)") 
+```
+
+- Comparing samples within a data frame 
+
+
+```{r}
+plot7=period_scale$BSpan_Prenatal %>%
+  set_colnames("BrainSpan_Prenatal") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(period_scale$BSpan_Postnatal %>%
+          set_colnames("BrainSpan_Postnatal") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000043355", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=BrainSpan_Prenatal,
+                            y = BrainSpan_Postnatal, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("BrainSpan (prenatal)") + ylab("BrainSpan (postnatal)") +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("ZIC2 (ENSG00000043355)")
+```
+
+```{r}
+plot8=period_scale$BSeq_Prenatal %>%
+  set_colnames("BrainSpan_Prenatal") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(period_scale$BSeq_Postnatal %>%
+          set_colnames("BrainSpan_Postnatal") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000176165", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=BrainSpan_Prenatal,
+                            y = BrainSpan_Postnatal, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("BrainSeq (prenatal)") + ylab("BrainSeq (postnatal)") +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("FOXG1 (ENSG00000176165)")
+```
+
+```{r}
+plot9= period_scale$PE_Prenatal %>%
+  set_colnames("BrainSpan_Prenatal") %>%
+  rownames_to_column("GeneID") %>% 
+  left_join(period_scale$PE_Postnatal %>%
+          set_colnames("BrainSpan_Postnatal") %>%
+          rownames_to_column("GeneID"), 
+          by ="GeneID") %>% 
+  as.data.frame() %>% 
+  mutate(Color = ifelse(GeneID == "ENSG00000176165", "No", "Color")) %>% 
+  arrange(Color) %>%
+  #mutate(Color = factor(Color, levels = c( "Color", "No"))) %>%
+  ggplot() + geom_point(aes(x=BrainSpan_Prenatal,
+                            y = BrainSpan_Postnatal, color = Color, 
+                            size = Color, alpha = Color)) +
+  theme_bw() + scale_size_manual(values = c("No" = 4, 
+                                      "Color" = 2)) + 
+  scale_color_manual(values = c("Color" = "#F68D6F", 
+                                "No" = "#6370E0")) + 
+  scale_alpha_manual(values =c("No" = 1, 
+                               "Color" = 0.50)) +
+  xlab("PsychEncode (prenatal)") + ylab("PsychEncode (postnatal)") +
+  theme(legend.position = "none", 
+        axis.text = element_text(size =12),
+        axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+        panel.grid.minor = element_blank()) +
+  ggtitle("MKI67 (ENSG00000148773)")
+```
+
+
+
+```{r}
+plot = ggarrange(plot1,plot2,plot3,
+          plot6, plot5, plot4, 
+          plot9, plot8, plot7,
+          ncol = 3,
+          nrow = 3, 
+          labels = c("(a)","(b)", "(c)",
+                     "(d)", "(e)", "(f)", 
+                     "(g)", "(h)", "(i)"),
+          vjust = 0.50) 
+ggsave(plot = plot, filename  = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/examples/example-plot.pdf",
+       height = 16, width=15, units = "in")
+
+
+```
+
+
+<!-- # ```{r} -->
+<!-- #  -->
+<!-- #  -->
+<!-- # plot = grid.arrange(plot5,plot2,  -->
+<!-- #         plot4,plot3,  -->
+<!-- #         plot1, ncol=2, nrow=3) -->
+<!-- #  -->
+<!-- # ggsave(plot = plot, filename  = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/examples/example-plot.pdf",  -->
+<!-- #     height = 15, width=10, units = "in") -->
+<!-- # ``` -->
+
+<!-- # ```{r} -->
+<!-- # ggsave(plot = plot1,  -->
+<!-- #        filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/examples/plot1.svg",  -->
+<!-- #        height = 6,  -->
+<!-- #        width =6,  -->
+<!-- #        units = "in") -->
+<!-- #  -->
+<!-- # ggsave(plot = plot2,  -->
+<!-- #        filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/examples/plot2.svg",  -->
+<!-- #        height = 6,  -->
+<!-- #        width =6,  -->
+<!-- #        units = "in") -->
+<!-- # ggsave(plot = plot3,  -->
+<!-- #        filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/examples/plot3.svg",  -->
+<!-- #        height = 6,  -->
+<!-- #        width =6,  -->
+<!-- #        units = "in") -->
+<!-- # ggsave(plot = plot4,  -->
+<!-- #        filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/examples/plot4.svg",  -->
+<!-- #        height = 6,  -->
+<!-- #        width =6,  -->
+<!-- #        units = "in") -->
+<!-- # ggsave(plot = plot5,  -->
+<!-- #        filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/examples/plot5.svg",  -->
+<!-- #        height = 6,  -->
+<!-- #        width =6,  -->
+<!-- #        units = "in") -->
+<!-- # ``` -->
+
+## Incorporating variance partition results 
+
+```{r}
+varPart = list()
+
+
+varPart$BSpan = read.csv("/home/neuro/Documents/BrainData/Bulk/BrainSpan/Formatted/BrainSpan-varPart.csv",header=TRUE, row.names = 1)
+
+varPart$BSeq = read.csv("/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-varPart.csv",header=TRUE, row.names = 1)
+varPart$GTEx = read.csv("/home/neuro/Documents/BrainData/Bulk/GTEx/Formatted/GTEx-varPart.csv",header=TRUE, row.names = 1)
+varPart$PE = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-varPart.csv",header=TRUE, row.names = 1)
+
+varPart$HDBR = read.csv("/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-varPart.csv",header=TRUE, row.names = 1)
+```
+
+```{r}
+varPart$BSpan %<>%
+  column_to_rownames("X")
+
+varPart$BSpan["ENSG00000081041",] %>%
+  melt() %>%
+  ggplot(aes(x=variable,y=value)) + geom_bar(stat = "identity",
+                                             position = "dodge")
+```
+
+```{r}
+varPart$HDBR["ENSG00000081041",] %>%
+  melt() %>%
+  ggplot(aes(x=variable,y=value)) + geom_bar(stat = "identity",
+                                             position = "dodge")
+```
+
+```{r}
+varPart$BSeq["ENSG00000081041",] %>%
+  melt() %>%
+  ggplot(aes(x=variable,y=value)) + geom_bar(stat = "identity",
+                                             position = "dodge")
+```
+
+```{r}
+varPart$GTEx["ENSG00000081041",] %>%
+  melt() %>%
+  ggplot(aes(x=variable,y=value)) + geom_bar(stat = "identity",
+                                             position = "dodge")
+```
+
+
+
+## Side analysis using cerebral palsy 
+
+```{r}
+cp.genes =read.csv("/home/neuro/Documents/cp-transcriptomic-signatures/Lists/Cerebral_palsy/CP-genes-vanEyk.csv",
+                   header=TRUE) %>% 
+  as.data.frame() %>% 
+  dplyr::select(GeneID) %>%
+  mutate(EnsID = mapIds(org.Hs.eg.db, keys=GeneID,  
+                         column="ENSEMBL",keytype="SYMBOL", multiVals="first"))
+```
+
+# GTEX data
+
+```{r}
+strctures = unique(md$GTEx$StructureAcronym)
+
+strctures_scale  = list()
+datasets = unique(names(e$Raw))
+
+for(strc in strctures){
+    md_region = md$GTEx[md$GTEx$StructureAcronym == strc,]
+    mat_sub = e$Raw$GTEx %>% 
+      dplyr::select(contains(md_region$SampleID))
+    mat_sub =  log2(mat_sub+0.5)
+    mat_sub = scale(mat_sub)
+    mat_sub = mat_sub %>% rowMeans() %>% melt() %>% 
+      set_colnames(strc)
+    strctures_scale[[paste0(strc)]] = mat_sub
+    
+    
+  }
+
+
+strctures_scale %>% 
+  do.call(cbind,.) %>% 
+  rownames_to_column("EnsID") %>% 
+  left_join(cp.genes, by = "EnsID") %>%
+  distinct(GeneID, .keep_all = TRUE) %>%
+  dplyr::select(-EnsID) %>% 
+  column_to_rownames("GeneID") %>%
+  pheatmap()
 ```

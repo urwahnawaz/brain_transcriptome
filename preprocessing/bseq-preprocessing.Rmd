@@ -156,6 +156,74 @@ write.csv(md, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/Br
 
 ## Quality control checks 
 
+```{r}
+bseq.exp.filt <- thresh(exp)
+```
+
+```{r}
+pc = log(bseq.exp.filt + 0.05) %>% 
+  t() %>% 
+   prcomp(scale = TRUE)
+
+pca_bseq =pc$x %>% 
+  as.data.frame() %>%
+  dplyr::select(PC1, PC2, PC3) %>%
+   rownames_to_column("SampleID") %>% 
+  left_join(md, by = "SampleID") %>%
+ # pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>% 
+  ggplot(
+    aes(PC1, PC2, colour = mito_Rate, shape = StructureAcronym)
+  ) +
+  geom_point(size=5) + theme_bw() +
+   labs(
+    x = glue("PC1 ({percent(pc$sdev[[1]]^2 / sum(pc$sdev^2), 0.1)})"),
+    y = glue("PC2 ({percent(pc$sdev[[2]]^2 / sum(pc$sdev^2), 0.1)})"),
+    colour = "Mitochondrial rate",
+    shape = "Structure Acronym"
+  ) + theme(legend.position = "top")
+
+
+ pc$x  %>%
+    as.data.frame() %>%
+  rownames_to_column("SampleID") %>%
+  left_join(md) %>%
+    dplyr::select(
+        PC1, PC2, PC3, 
+        Period, 
+        Regions, 
+        AgeNumeric,
+        Sex, 
+        DonorID,
+        RIN, 
+        mito_Rate, 
+        TotalNReads, 
+        MappingRate
+    ) %>% 
+  drop_na(Regions) %>%
+   mutate(Period = as.numeric(as.factor(Period)), 
+          Regions = as.numeric(as.factor(Regions)),
+          Sex = as.numeric(as.factor(Sex)), 
+          DonorID = as.numeric(as.factor(DonorID))) %>%
+    cor() %>% 
+    corrplot(
+        type = "lower", 
+        diag = FALSE, 
+        addCoef.col = 1, 
+        number.cex = 0.75)
+
+
+ggsave(cor_plot,
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/corplot_bseq.svg", 
+        height = 6, 
+       width = 8, 
+       units = "in")
+
+ggsave(pca_bseq,
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/pca_bseq.svg", 
+        height = 6, 
+       width = 8, 
+       units = "in")
+```
 - Check sample labeling 
 
 
@@ -171,10 +239,69 @@ write.csv(md, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/Br
 - GC content of the dataset 
 
 ```{r}
+annot_seq = annot %>% 
+  dplyr::filter(Type == "Sequencing metrics")
+md.clean = md %>% 
+  dplyr::select(SampleID, contains(annot_seq$BITColumnName))
+md.clean = md.clean %>% select_if(~ !any(is.na(.)))
+md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
+```
+
+- Correlation of metadata variables 
+
+```{r}
+M = cor(data.matrix(md.clean), use = "complete.obs")
+corrplot(M, order='AOE',
+         method = "circle", type = "upper", 
+         number.cex = .50, 
+         tl.cex=0.75)
 
 
 ```
 
+
+## Determing drivers of variation 
+
+
+
+```{r fig.height =5, fig.width=5, fig.cap="*Assessing correlation between covariates of interest from the BrainSeq data*"}
+form.bseq <- ~ AgeNumeric + (1|StructureAcronym) + (1|Sex) + RIN +  (1|Diagnosis) + mito_Rate + rRNA_rate + TotalNReads + MappingRate + 
+  (1|Period) + (1|AgeInterval) + (1|DonorID)
+C.bseq = canCorPairs(form.bseq, md)
+plotCorrMatrix( C.bseq )
+
+```
+
+The correlation plot reveals that many of the selected covariates do not correlate highly within their respective category, and therefore we will feed these into the mixed linear model. 
+
+
+```{r}
+varPar.bseq <- fitExtractVarPartModel(bseq.exp.filt, form.bseq, md)
+```
+
+
+```{r fig.width=10, fig.cap="*variancePartition results for BrainSeq. Plot on right shows impact of covariates of interest on randomly selected genes whereaas left shows overall impact of covariates on all gene expression.*"}
+
+var.genes.bseq = plotVarPart(varPar.bseq %>% 
+                               as.data.frame() %>% 
+                               dplyr::select( Period, mito_Rate,
+                                             StructureAcronym,
+                                             DonorID, AgeInterval, 
+                                             RIN, AgeNumeric,MappingRate, 
+                                             rRNA_rate,
+                                             everything()))
+var.genes.bseq <- variancePartition::sortCols(var.genes.bseq)
+
+ggsave(var.genes.bseq, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/varPart_bseq.svg",
+       height = 6, 
+       width = 8, 
+       units = "in")
+
+grid.arrange(var.genes.bseq, var.total.bseq , ncol = 2)
+
+write.csv(varPar.bseq, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-varPart.csv")
+```
 
 
 # Deconvolution 
@@ -249,6 +376,8 @@ decon.comp %>%
   ggplot(aes(variable,value, fill = variable)) +
    geom_boxplot(width=0.1) + facet_wrap(~Period) + geom_jitter(alpha=0.5)
 ```
+
+
 ```{r}
 decon.comp %>% 
   dplyr::select(SampleID, "Dev.Quiescent", "Dev.Replicating","Adult.Astrocytes", "Astrocytes", 
@@ -257,5 +386,12 @@ decon.comp %>%
   drop_na() %>%
   ggplot(aes(variable,value, fill = variable)) +
    geom_boxplot(width=0.1) + facet_wrap(~Period) + geom_jitter(alpha=0.5)
+
+```
+
+### Export 
+
+```{r}
+write.csv(bseq.decon, file = "/home/neuro/Documents/BrainData/Bulk/Brainseq/Formatted/BrainSeq-decon.csv")
 
 ```

@@ -111,7 +111,7 @@ structure_acronym[["SNA"]] = c("Brain - Substantia nigra")
 structure_acronym[["ACC"]] = c("Brain - Anterior cingulate cortex (BA24)")
 structure_acronym[["CTX"]] = c("Brain - Cortex", "cerebral cortex")
 structure_acronym[["NAC"]] = c("Brain - Nucleus accumbens (basal ganglia)")
-structure_acronym[["CGE"]] = c("Brain - Caudate (basal ganglia)", "basal ganglion")
+structure_acronym[["CAU"]] = c("Brain - Caudate (basal ganglia)", "basal ganglion")
 structure_acronym[["DLPFC"]] = c("Brain - Frontal Cortex (BA9)")
 structure_acronym[["PUT"]] = c("Brain - Putamen (basal ganglia)")
 structure_acronym[["CBC"]] = c("Brain - Cerebellar Hemisphere")
@@ -139,22 +139,33 @@ structure_acronym[["TEL"]] = c("telencephalon")
 ################### Defining regions ####################
 regions = list()
 
-regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MGE", 
-                           "MD", "STR", "SNA", "PUT", "HYP", "NAC", 
-                           "CP", "MEDU", "PONS")
+regions[["Subcortex"]] = c("AMY", "CGE", "DTH", "HIP", "LGE", "MD", "CAU", 
+                           "STR", "SNA", "PUT", "HYP", "NAC")
 
-regions[["Cortex"]] = c("MFC", "DFC", "Ocx", "OFC", "PCx", 
-                        "TCx", "VFC", "ITC", "STC", "IPC", "V1C", 
-                        "M1C", "M1C-S1C", "S1C", "A1C", "ACC", "CTX", "DLPFC", 
-                        "MTG", "CgG", "M1lm", "M1ul", "S1lm", "S1ul")
+regions[["Cortex"]] = c("A1C", "DLPFC", "IPC", "ITC", "M1C",
+                        "M1C-S1C", "ACC", "MGE", "Ocx", "OFC", 
+                        "PCx", "S1C", "STC","TCx", "V1C", "VFC",
+                        "CTX")
 
 regions[["Cerebellum"]] = c("CBC", "CB", "URL")
 
 regions[["Spinal Cord"]] = c("SCI")
 
-regions[["Brain fragment"]] =c("BF")
 
-regions[["Forebrain"]] = c("FB", "FBF", "DIEN", "PIT-DIEN", "TEL")
-regions[["Midbrain"]] = c("MB")
-regions[["Forebrain and midbrain"]] = c("FB-MID", "DIEN-MID")
-regions[["Hindbrain"]] = c("HB", "HBF", "HB/C")
+
+#regions[["Forebrain"]] = c("FB", "FBF", "DIEN", "PIT-DIEN", "TEL")
+#regions[["Midbrain"]] =
+#regions[["Hindbrain"]] = 
+
+### Regions for HDBR 
+
+regions_fetal = list()
+
+regions_fetal[["Forebrain"]] = c("FB", "FBF", "DIEN", "PIT-DIEN", "TEL", 
+                                 "CTX", "TCx", "CGE", "HIP")
+regions_fetal[["Midbrain"]] = c("MB")
+regions_fetal[["Hindbrain"]] = c("HB", "HBF", "HB/C", 
+                                 "CB", "MEDU", "PONS")
+regions_fetal[["Brain"]] =c("BF", "CP")
+regions_fetal[["Forebrain and midbrain"]] = c("FB-MID", "DIEN-MID")
+regions_fetal[["Spinal Cord"]] = c("SCI")

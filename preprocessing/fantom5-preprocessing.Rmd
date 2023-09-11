@@ -228,3 +228,6 @@ f5_final = f5_exp %>%
 
 write.csv(f5_final, file= "/home/neuro/Documents/BrainData/Bulk/Fantom5/Fantom5-exp.csv")
 ```
+
+
+# Fantom5 preprocessing using the other datasets

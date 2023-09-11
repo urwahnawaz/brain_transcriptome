@@ -23,6 +23,9 @@ library(DT)
 library(dplyr)
 library(tidyr)
 source("functions.R")
+source("../signatures/libraries.R")
+source("../signatures/functions.R")
+load("../../DeconRNAShiny/sigsBrain.rda")
 library(pander)
 library(gridExtra)
 library(variancePartition)
@@ -44,6 +47,10 @@ rgns = map_df(regions, ~as.data.frame(.x), .id="id") %>%
   set_colnames("Regions")
 colnames(rgns)[2] = c("StructureAcronym")
 
+
+rgns_ftl = map_df(regions_fetal, ~as.data.frame(.x), .id="id") %>% 
+  set_colnames("Regions")
+colnames(rgns)[2] = c("StructureAcronym")
 ```
 
 # Background 
@@ -59,246 +66,269 @@ Unlike traditional quantification methods, recount3 provides base-pair coverage 
 
 # Datasets 
 
-## Ramakar et al (2017)
-
-```{r}
-ramakar = recount3::create_rse_manual(
-  project = "SRP073813",
-  project_home = "data_sources/sra",
-  organism = "human",
-  annotation = "gencode_v29",
-  type = "gene"
-)
-
-
-#ramakar.manual = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/sra.gene_sums.SRP073813.G026", header=TRUE)
-
-ramakar.refine = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/SRP073813/SRP073813.tsv", sep = "\t", header=TRUE)
-```
-
-### Metdata preprocessing 
-```{r sra-dataset}
-sra_data = colData(ramakar) %>% 
-  as.data.frame() %>% 
-  dplyr::select(contains("sra")) 
-
-
-md.sra = sra_data %>%
-  dplyr::select("sra.sample_attributes") %>%
-  rownames_to_column("SampleID") %>%
-  separate(sra.sample_attributes, c("Age", "pH", "StructureAcronym", "Diagnosis", "Ethnicity", "Sex",
-                                    "PMI", "SourceName", "Tissue"), sep="\\|") %>% 
-  mutate(Age = gsub(".*;;","", Age), 
-         pH = gsub(".*;;","", pH), 
-         StructureAcronym = gsub(".*;;","", StructureAcronym),
-         Diagnosis = gsub(".*;;","", Diagnosis), 
-         Ethnicity = gsub(".*;;","", Ethnicity), 
-         Sex = gsub(".*;;","", Sex), 
-         PMI = gsub(".*;;","", PMI)) %>% 
-  dplyr::select(-c("SourceName", "Tissue")) %>% 
-  mutate(Sex = ifelse(Sex == "male", "M", "F"), 
-         StructureAcronym = gsub("nAcc","NAC", StructureAcronym))  %>% 
-  mutate(StructureAcronym = gsub("AnCg", "ACC", StructureAcronym)) %>%
-  mutate(Age_rounded = as.character(sapply(na.omit(as.numeric(.$Age)), num_to_round)), 
-        Period = c("Postnatal"), 
-        Age = as.numeric(Age), 
-        pH = as.numeric(pH), 
-        PMI = as.numeric(PMI)) %>%
-  mutate(AgeInterval = add_feature(.$Age_rounded , age_intervals))
-
-md.sra %<>%
-  left_join(rgns, by = "StructureAcronym") 
-```
-
-
-```{r}
-md.refine.bio = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/SRP073813/metadata_SRP073813.tsv", header=TRUE,
-                           sep = "\t")
-
-md.refine.bio %<>% 
-  as.data.frame() %>%
-  mutate(DonorID = gsub("_.*","", refinebio_title))  %>% 
-  dplyr::rename("SampleID" = "refinebio_accession_code")
-
-
-
-```
-
-```{r recount}
-md = colData(ramakar) %>% 
-  as.data.frame() %>%
-  dplyr::select(-contains("2"))
-colnames(md) = annot$BITColumnName[match(colnames(md), annot$RecountName)]
-md = full_join(md, md.sra)
-
-md.refine.bio %>%
-  dplyr::select(SampleID,MetaSRA_age.at.death, DonorID)
-md = full_join(md, md.refine.bio)
-#md_names = colnames(md) %>% as.data.frame()
-#write.csv(md_names, file = "../annotations/Ramaker-2017-metadata-annot.csv")
-```
-
-
-```{r}
-md.clean = md %>% select_if(~ !any(is.na(.)))
-md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
-```
-
-* Selection of metadata variables for subset 
-
-<!-- # ```{r fig.height=30, fig.width=30} -->
-<!-- # M = cor(data.matrix(md.clean), use = "complete.obs") -->
-<!-- # corrplot(M, order='AOE') -->
-<!-- # ``` -->
-<!-- #  -->
-<!-- # ```{r} -->
-<!-- # rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame()  -->
-<!-- # ``` -->
-
-<!-- * Selection for variance Partition  -->
+<!-- ## Ramakar et al (2017) -->
 
 <!-- ```{r} -->
-<!-- ramakar_annot = read.csv("../annotations/Ramaker-2017-metadata-annot.csv", header=TRUE) %>%  -->
-<!--   dplyr::filter(Include..Yes.No....Interest == "Yes") %>%  -->
-<!--   dplyr::select(-c(Include..Yes.No....Interest)) -->
+<!-- ramakar = recount3::create_rse_manual( -->
+<!--   project = "SRP073813", -->
+<!--   project_home = "data_sources/sra", -->
+<!--   organism = "human", -->
+<!--   annotation = "gencode_v29", -->
+<!--   type = "gene" -->
+<!-- ) -->
 
 
-<!-- knitr::kable(ramakar_annot) -->
+<!-- #ramakar.manual = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/sra.gene_sums.SRP073813.G026", header=TRUE) -->
 
-<!-- md %<>% dplyr::select(contains(ramakar_annot$BITColumnName)) -->
+<!-- ramakar.refine = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/SRP073813/SRP073813.tsv", sep = "\t", header=TRUE) -->
 <!-- ``` -->
 
-<!-- ```{r fig.height=20, fig.width=20} -->
-<!-- M = cor(data.matrix(md), use = "complete.obs") -->
-<!-- corrplot(M) -->
+<!-- ### Metdata preprocessing  -->
+<!-- ```{r sra-dataset} -->
+<!-- sra_data = colData(ramakar) %>%  -->
+<!--   as.data.frame() %>%  -->
+<!--   dplyr::select(contains("sra"))  -->
+
+
+<!-- md.sra = sra_data %>% -->
+<!--   dplyr::select("sra.sample_attributes") %>% -->
+<!--   rownames_to_column("SampleID") %>% -->
+<!--   separate(sra.sample_attributes, c("Age", "pH", "StructureAcronym", "Diagnosis", "Ethnicity", "Sex", -->
+<!--                                     "PMI", "SourceName", "Tissue"), sep="\\|") %>%  -->
+<!--   mutate(Age = gsub(".*;;","", Age),  -->
+<!--          pH = gsub(".*;;","", pH),  -->
+<!--          StructureAcronym = gsub(".*;;","", StructureAcronym), -->
+<!--          Diagnosis = gsub(".*;;","", Diagnosis),  -->
+<!--          Ethnicity = gsub(".*;;","", Ethnicity),  -->
+<!--          Sex = gsub(".*;;","", Sex),  -->
+<!--          PMI = gsub(".*;;","", PMI)) %>%  -->
+<!--   dplyr::select(-c("SourceName", "Tissue")) %>%  -->
+<!--   mutate(Sex = ifelse(Sex == "male", "M", "F"),  -->
+<!--          StructureAcronym = gsub("nAcc","NAC", StructureAcronym))  %>%  -->
+<!--   mutate(StructureAcronym = gsub("AnCg", "ACC", StructureAcronym)) %>% -->
+<!--   mutate(Age_rounded = as.character(sapply(na.omit(as.numeric(.$Age)), num_to_round)),  -->
+<!--         Period = c("Postnatal"),  -->
+<!--         Age = as.numeric(Age),  -->
+<!--         pH = as.numeric(pH),  -->
+<!--         PMI = as.numeric(PMI)) %>% -->
+<!--   mutate(AgeInterval = add_feature(.$Age_rounded , age_intervals)) -->
+
+<!-- md.sra %<>% -->
+<!--   left_join(rgns, by = "StructureAcronym")  -->
 <!-- ``` -->
 
 
-```{r}
-assay(ramakar, "counts") = transform_counts(ramakar, round = TRUE)
+<!-- ```{r} -->
+<!-- md.refine.bio = read.table("/home/neuro/Documents/BrainData/Bulk/Ramakar/SRP073813/metadata_SRP073813.tsv", header=TRUE, -->
+<!--                            sep = "\t") -->
 
-ram.tpm = recount::getTPM(ramakar)
-ram.tpm %<>% as.data.frame() %>%
-  dplyr::select(-c(SRR3438888))
-
-
-#,SRR3438686, SRR3438689,
- #                  SRR3438708, SRR3438710, SRR3438736, 
-  #                 SRR3438712, SRR3438714, SRR3438716, SRR3438734))
-
-filter <- rowSums(ram.tpm, na.rm = TRUE) > 0
-
-ram.tpm.filt = ram.tpm[filter,] %>% as.data.frame()
-ram.tpm.filt
-
-ram.tpm.filt <- thresh(ram.tpm.filt)
-md %<>% 
-  dplyr::filter(SampleID %in% colnames(ram.tpm.filt))
-```
-
-### Quality control analysis 
-
-### Deconvolution 
-
-### Determining drivers of variation
-
-```{r}
-ram.before = log(ram.tpm + 0.01) %>%
-    melt() %>%
-    dplyr::filter(is.finite(value)) %>% 
-    ggplot(aes(x=value, color = as.character(variable))) +
-    geom_density() +
-    ggtitle("Before filtering") +
-    labs(x = "logTPM", y = "Proportion of Genes") + 
-    theme_bw() +
-    theme(legend.position = "none")
+<!-- md.refine.bio %<>%  -->
+<!--   as.data.frame() %>% -->
+<!--   mutate(DonorID = gsub("_.*","", refinebio_title))  %>%  -->
+<!--   dplyr::rename("SampleID" = "refinebio_accession_code") -->
 
 
 
-ram.after =log(as.matrix(ram.tpm.filt) + 0.01) %>%
-    melt() %>%
-    dplyr::filter(is.finite(value)) %>% 
-    ggplot(aes(x=value, color = as.character(Var2))) +
-    geom_density() +
-    ggtitle("After filtering") +
-    labs(x = "logTPM", y = "Proportion of Genes") + 
-    theme_bw() +
-    theme(legend.position = "none")
+<!-- ``` -->
 
-grid.arrange(ram.before, ram.after, ncol =2)
-```
+<!-- ```{r recount} -->
+<!-- md = colData(ramakar) %>%  -->
+<!--   as.data.frame() %>% -->
+<!--   dplyr::select(-contains("2")) -->
+<!-- colnames(md) = annot$BITColumnName[match(colnames(md), annot$RecountName)] -->
+<!-- md = full_join(md, md.sra) -->
 
-- PCA
-
-```{r}
-## Refine bio 
-ramakar.refine %<>% column_to_rownames("Gene")
-ram.filt <- thresh(ramakar.refine) 
-```
+<!-- md.refine.bio %>% -->
+<!--   dplyr::select(SampleID,MetaSRA_age.at.death, DonorID) -->
+<!-- md = full_join(md, md.refine.bio) -->
+<!-- #md_names = colnames(md) %>% as.data.frame() -->
+<!-- #write.csv(md_names, file = "../annotations/Ramaker-2017-metadata-annot.csv") -->
+<!-- ``` -->
 
 
-```{r}
-pc = log(ram.tpm.filt  + 0.05) %>% 
-  t() %>% 
-   prcomp(scale = TRUE)
+<!-- ```{r} -->
+<!-- md.clean = md %>% select_if(~ !any(is.na(.))) -->
+<!-- md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))] -->
+<!-- ``` -->
 
-pc$x %>% 
-  as.data.frame() %>%
-  dplyr::select(PC1, PC2, PC3) %>%
-   rownames_to_column("SampleID") %>% 
-  left_join(md, by = "SampleID") %>%
- # pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>% 
-  ggplot(
-    aes(PC1, PC2, colour = Size) 
-  ) +
-  geom_point()
+<!-- * Selection of metadata variables for subset  -->
 
-```
-```{r}
-log_gene_cor= cor(log(ram.tpm.filt  + 0.05 ))
+<!-- <!-- # ```{r fig.height=30, fig.width=30} --> -->
+<!-- <!-- # M = cor(data.matrix(md.clean), use = "complete.obs") --> -->
+<!-- <!-- # corrplot(M, order='AOE') --> -->
+<!-- <!-- # ``` --> -->
+<!-- <!-- #  --> -->
+<!-- <!-- # ```{r} --> -->
+<!-- <!-- # rowMeans(M, na.rm = TRUE) %>% scale() %>% as.data.frame()  --> -->
+<!-- <!-- # ``` --> -->
 
-log_gene_cor[log_gene_cor==1] <- NA
+<!-- <!-- * Selection for variance Partition  --> -->
 
-cor = rowMeans(log_gene_cor, na.rm = TRUE) %>% scale() %>% as.data.frame() %>%
-  set_colnames("Genes")
-
-cor %>% DT::datatable()
-```
+<!-- <!-- ```{r} --> -->
+<!-- <!-- ramakar_annot = read.csv("../annotations/Ramaker-2017-metadata-annot.csv", header=TRUE) %>%  --> -->
+<!-- <!--   dplyr::filter(Include..Yes.No....Interest == "Yes") %>%  --> -->
+<!-- <!--   dplyr::select(-c(Include..Yes.No....Interest)) --> -->
 
 
-- Variance partition 
+<!-- <!-- knitr::kable(ramakar_annot) --> -->
 
-```{r}
-form.ram <- ~ Age + (1|StructureAcronym) + (1|Sex) + (1|Diagnosis) + PMI + pH + TotalNReads + MappingRate + (1|Regions)
-C.ram = canCorPairs(form.ram, md)
-plotCorrMatrix(C.ram)
-```
+<!-- <!-- md %<>% dplyr::select(contains(ramakar_annot$BITColumnName)) --> -->
+<!-- <!-- ``` --> -->
+
+<!-- <!-- ```{r fig.height=20, fig.width=20} --> -->
+<!-- <!-- M = cor(data.matrix(md), use = "complete.obs") --> -->
+<!-- <!-- corrplot(M) --> -->
+<!-- <!-- ``` --> -->
 
 
-```{r}
-varPar.ram <- fitExtractVarPartModel(ram.tpm.filt, form.ram ,md )
+<!-- ```{r} -->
+<!-- assay(ramakar, "counts") = transform_counts(ramakar, round = TRUE) -->
 
-```
+<!-- ram.tpm = recount::getTPM(ramakar) -->
+<!-- ram.tpm %<>% as.data.frame() %>% -->
+<!--   dplyr::select(-c(SRR3438888)) -->
 
-```{r}
-var.genes.ram = plotVarPart(varPar.ram)
-var.total.ram =plotPercentBars(varPar.ram [1:10,] )
-grid.arrange(var.genes.ram, var.total.ram , ncol = 2)
-```
 
-### Export data 
+<!-- #,SRR3438686, SRR3438689, -->
+<!--  #                  SRR3438708, SRR3438710, SRR3438736,  -->
+<!--   #                 SRR3438712, SRR3438714, SRR3438716, SRR3438734)) -->
 
-```{r}
-ram.final = ram.tpm %>% 
-  as.data.frame() %>% 
-  rownames_to_column("EnsemblID") %>% 
-  mutate_at(.vars = "EnsemblID", .funs = gsub, pattern = "\\.[0-9]*$", replacement = "") 
+<!-- filter <- rowSums(ram.tpm, na.rm = TRUE) > 0 -->
 
-write.csv(ram.final, file= "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-exp.csv")
+<!-- ram.tpm.filt = ram.tpm[filter,] %>% as.data.frame() -->
+<!-- ram.tpm.filt -->
 
-write.csv(md, file = "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-metadata.csv")
+<!-- ram.tpm.filt <- thresh(ram.tpm.filt) -->
+<!-- md %<>%  -->
+<!--   dplyr::filter(SampleID %in% colnames(ram.tpm.filt)) -->
+<!-- ``` -->
 
-```
+<!-- ### Quality control analysis  -->
+
+<!-- ### Deconvolution  -->
+
+<!-- ### Determining drivers of variation -->
+
+<!-- ```{r} -->
+<!-- ram.before = log(ram.tpm + 0.01) %>% -->
+<!--     melt() %>% -->
+<!--     dplyr::filter(is.finite(value)) %>%  -->
+<!--     ggplot(aes(x=value, color = as.character(variable))) + -->
+<!--     geom_density() + -->
+<!--     ggtitle("Before filtering") + -->
+<!--     labs(x = "logTPM", y = "Proportion of Genes") +  -->
+<!--     theme_bw() + -->
+<!--     theme(legend.position = "none") -->
+
+
+
+<!-- ram.after =log(as.matrix(ram.tpm.filt) + 0.01) %>% -->
+<!--     melt() %>% -->
+<!--     dplyr::filter(is.finite(value)) %>%  -->
+<!--     ggplot(aes(x=value, color = as.character(Var2))) + -->
+<!--     geom_density() + -->
+<!--     ggtitle("After filtering") + -->
+<!--     labs(x = "logTPM", y = "Proportion of Genes") +  -->
+<!--     theme_bw() + -->
+<!--     theme(legend.position = "none") -->
+
+<!-- grid.arrange(ram.before, ram.after, ncol =2) -->
+<!-- ``` -->
+
+<!-- - PCA -->
+
+<!-- ```{r} -->
+<!-- ## Refine bio  -->
+<!-- ramakar.refine %<>% column_to_rownames("Gene") -->
+<!-- ram.filt <- thresh(ramakar.refine)  -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- pc = log(ram.tpm.filt  + 0.05) %>%  -->
+<!--   t() %>%  -->
+<!--    prcomp(scale = TRUE) -->
+
+<!-- pc$x %>%  -->
+<!--   as.data.frame() %>% -->
+<!--   dplyr::select(PC1, PC2, PC3) %>% -->
+<!--    rownames_to_column("SampleID") %>%  -->
+<!--   left_join(md, by = "SampleID") %>% -->
+<!--  # pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>%  -->
+<!--   ggplot( -->
+<!--     aes(PC1, PC2, colour = Size)  -->
+<!--   ) + -->
+<!--   geom_point() -->
+
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- log_gene_cor= cor(log(ram.tpm.filt  + 0.05 )) -->
+
+<!-- log_gene_cor[log_gene_cor==1] <- NA -->
+
+<!-- cor = rowMeans(log_gene_cor, na.rm = TRUE) %>% scale() %>% as.data.frame() %>% -->
+<!--   set_colnames("Genes") -->
+
+<!-- cor %>% DT::datatable() -->
+<!-- ``` -->
+
+
+<!-- - Variance partition  -->
+
+<!-- ```{r} -->
+<!-- form.ram <- ~ Age + (1|Sex) + (1|Diagnosis) + PMI + pH + TotalNReads + MappingRate + (1|Regions) + (1|DonorID) -->
+<!-- C.ram = canCorPairs(form.ram, md) -->
+<!-- plotCorrMatrix(C.ram) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- varPar.ram <- fitExtractVarPartModel(ram.tpm.filt, form.ram ,md ) -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- var.genes.ram = plotVarPart(varPar.ram %>%  -->
+<!--                               as.data.frame() %>%  -->
+<!--                               dplyr::select(DonorID, MappingRate,  -->
+<!--                                             Regions, TotalNReads, -->
+<!--                                             PMI, pH, everything())) -->
+<!-- var.total.ram =plotPercentBars(varPar.ram [1:10,] ) -->
+<!-- grid.arrange(var.genes.ram, var.total.ram , ncol = 2) -->
+
+<!-- ggsave(var.genes.ram,  -->
+<!--        filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/varPart_ram.svg", -->
+<!--        height = 6,  -->
+<!--        width = 8,  -->
+<!--        units = "in") -->
+<!-- ``` -->
+
+<!-- ### Export data  -->
+
+<!-- ```{r} -->
+<!-- ram.final = ram.tpm %>%  -->
+<!--   as.data.frame() %>%  -->
+<!--   rownames_to_column("EnsemblID") %>%  -->
+<!--   mutate_at(.vars = "EnsemblID", .funs = gsub, pattern = "\\.[0-9]*$", replacement = "")  -->
+
+<!-- write.csv(ram.final, file= "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-exp.csv") -->
+
+<!-- write.csv(md, file = "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-metadata.csv") -->
+
+<!-- write.csv(varPar.ram, file = "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-varPart.csv") -->
+
+<!-- ``` -->
+
+<!-- ### Deconvolution  -->
+
+<!-- ```{r} -->
+
+<!-- ram_mat = ram.final  %>%  -->
+<!--   column_to_rownames("EnsemblID") -->
+<!-- ram.decon = run_dtg(ram_mat , sigsBrain$MB) -->
+
+<!-- write.csv(ram.decon, file= "/home/neuro/Documents/BrainData/Bulk/Ramakar/Formatted/Ramaker-decon.csv") -->
+<!-- ``` -->
 
 # Human developmental biology resource 
 
@@ -345,7 +375,7 @@ md.hdbr %<>%
                    StructureOntology, HemisphereOntology, OntologyAge)) %>% 
   mutate(AgeInterval = add_feature(.$Age, age_intervals))  %>%
   left_join(strc_acr, by = "Structure") %>% 
-  left_join(rgns, by = "StructureAcronym") %>% 
+  left_join(rgns_ftl, by = "StructureAcronym") %>% 
   mutate(Sex = toupper(Sex)) %>% 
   mutate(Sex = ifelse(str_detect(Sex,"XX"), "F",
                       ifelse(str_detect(Sex, "XY"), "M", "Unknown" )), 
@@ -362,16 +392,24 @@ md.hdbr %<>%
          Hemisphere = gsub("left", "L", Hemisphere), 
          Hemisphere = gsub("frontal", "Frontal", Hemisphere))
 
+hdbr_supp %<>% 
+  distinct(DonorID, .keep_all = TRUE) %>% 
+  mutate(PMI = ifelse(PMI == "UNKNOWN", NA, PMI))
 md.hdbr %<>% 
   left_join(hdbr_supp, by = c("DonorID"))
 full.md.hdbr =left_join(md.hdbr, md)
+full.md.hdbr %<>%
+  mutate(PMI = as.numeric(PMI))
 
-full.md.hdbr
+
 ```
 
 
 
 ```{r}
+annot_seq = annot %>% 
+  dplyr::filter(Type == "Sequencing metrics")
+md.clean = full.md.hdbr 
 md.clean = full.md.hdbr %>% select_if(~ !any(is.na(.)))
 md.clean = md.clean[vapply(md.clean, function(x) length(unique(x)) > 1, logical(1L))]
 ```
@@ -430,12 +468,79 @@ hdbr.after =log(hdbr.filter.tpm + 0.01) %>%
 grid.arrange(hdbr.before ,hdbr.after, ncol =2)
 ```
 
+### Deconvolution 
+
+```{r}
+hdbr.decon = run_dtg(hdbr.tpm , sigsBrain$MB)
+```
+
+- principal component analysis
+
+
+```{r}
+
+
+pc = log(hdbr.filter.tpm  + 0.05) %>% 
+  t() %>% 
+   prcomp(scale = TRUE)
+
+pc$x %>% 
+  as.data.frame() %>%
+  dplyr::select(PC1, PC2, PC3) %>%
+   rownames_to_column("SampleID") %>% 
+  left_join(full.md.hdbr, by = "SampleID") %>%
+  drop_na(Regions) %>%
+ # pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>% 
+  ggplot(
+    aes(PC1, PC2, colour = Regions)
+  ) +
+  geom_point(size=5) + theme_bw() +
+   labs(
+    x = glue("PC1 ({percent(pc$sdev[[1]]^2 / sum(pc$sdev^2), 0.1)})"),
+    y = glue("PC2 ({percent(pc$sdev[[2]]^2 / sum(pc$sdev^2), 0.1)})"),
+    colour = "Mitochondrial rate",
+    shape = "Structure Acronym"
+  ) + theme(legend.position = "top")
+
+
+ pc$x  %>%
+    as.data.frame() %>%
+  rownames_to_column("SampleID") %>%
+  left_join(full.md.hdbr) %>%
+   drop_na(Regions) %>%
+    dplyr::select(
+        PC1, PC2, PC3, 
+        Regions, 
+        Age,
+        AgeInterval,
+        Sex, 
+        DonorID,
+        IntronicRate, 
+        TotalNReads, 
+        MappingRate
+        
+    ) %>% 
+   mutate(Regions = as.numeric(as.factor(Regions)),
+          Sex = as.numeric(as.factor(Sex)), 
+          DonorID = as.numeric(as.factor(DonorID)), 
+          AgeInterval= as.numeric(as.factor( AgeInterval)),
+          Age= as.numeric(as.factor(Age))) %>%
+    cor() %>% 
+    corrplot(
+        type = "lower", 
+        diag = FALSE, 
+        addCoef.col = 1, 
+        number.cex = 0.75)
+
+
+```
+
 
 ### Variance partition analysis 
 
 
 ```{r}
-form.hdbr <- ~ (1|Age) + (1|StructureAcronym) + (1|Sex) + (1|Hemisphere) + TotalNReads + MappingRate + (1|Regions)
+form.hdbr <- ~ (1|Age) + (1|StructureAcronym) + (1|Sex) + (1|Hemisphere) + (1|SequencingBatch)+  TotalNReads + MappingRate + (1|Regions) + PMI + DonorID
 C.hdbr = canCorPairs(form.hdbr, full.md.hdbr)
 plotCorrMatrix(C.hdbr)
 ```
@@ -447,9 +552,25 @@ varPar.hdbr <- fitExtractVarPartModel(hdbr.filter.tpm ,form.hdbr ,full.md.hdbr)
 ```
 
 ```{r}
-var.genes.hdbr= plotVarPart(varPar.hdbr)
+var.genes.hdbr= plotVarPart(varPar.hdbr %>%
+    as.data.frame() %>%
+    dplyr::select(StructureAcronym, SequencingBatch, Age, everything()))
 var.total.hdbr  =plotPercentBars(varPar.hdbr[1:10,] )
 grid.arrange(var.genes.hdbr,var.total.hdbr, ncol = 2)
+
+ggsave(var.genes.hdbr, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/varPart_hdbr.svg",
+       height = 6, 
+       width = 8, 
+       units = "in")
+```
+
+
+```{r}
+varPar.hdbr["ENSG00000081041",] %>%
+  melt() %>%
+  ggplot(aes(x=variable,y=value)) + geom_bar(stat = "identity",
+                                             position = "dodge")
 ```
 
 
@@ -464,4 +585,19 @@ hdbr.final = hdbr.tpm %>%
 write.csv(hdbr.final,file = "/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-exp.csv")
 
 write.csv(full.md.hdbr, file = "/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-metadata.csv")
+
+write.csv(varPar.hdbr, file = "/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-varPart.csv")
 ```
+
+### Deconvolution 
+
+```{r}
+
+hdbr_mat = hdbr.final %>% 
+  column_to_rownames("EnsemblID")
+hdbr.decon = run_dtg(hdbr_mat , sigsBrain$MB)
+
+write.csv(hdbr.decon, file= "/home/neuro/Documents/BrainData/Bulk/HDBR/Formatted/HDBR-decon.csv")
+```
+
+

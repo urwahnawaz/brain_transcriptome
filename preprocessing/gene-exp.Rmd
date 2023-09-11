@@ -83,7 +83,7 @@ md$BSpan <- read.csv(file.path(brain.dir,
 # Exploration of genes for BITHub 
 
 ```{r}
-genes_of_interest = c("FOXG1", "ZIC2")
+genes_of_interest = c("FOXG1", "ZIC2", "MKI67")
 exp_data = list()
 datasets = c("BSpan", "GTEx", "BSeq", "PE", "Ram", "HDBR")
 for (x in datasets) {
@@ -117,7 +117,7 @@ rm(e)
 
 
 ```{r}
-exp_data %>% 
+plot = exp_data %>% 
   do.call(rbind, .) %>% 
     mutate(AgeInterval = factor(AgeInterval, 
                               levels = c("4-7pcw", "8-9pcw",
@@ -127,20 +127,29 @@ exp_data %>%
                                          "12-19yrs", "20-29yrs", "30-39yrs",
                                          "40-49yrs", "50-59yrs", "60-69yrs",
                                          "70-79yrs", "80-89yrs", "90-99yrs"))) %>% 
-  ggplot(aes(x = AgeInterval, y =log(Exp), fill = Regions)) + geom_boxplot() +  
-  theme_bw() +
+  drop_na() %>%
+  ggplot(aes(x = AgeInterval, y =log(Exp), fill = Regions)) +
+# geom_violin(position = position_dodge(0.8), color = NA) +
+  geom_boxplot(position = position_dodge(0.8), width = .6, outlier.shape = NA, linewidth = 0.05) + 
+  theme_bw() +scale_fill_manual(values= c("Cerebellum" = "#FFD256",
+                                           "Subcortex" = "#838DE0",                 
+                                          "Cortex" = "#E85571", 
+                                           "Spinal cord" = "#C6D14A", 
+                                           "Forebrain" = "#F6B19D",
+                                           "Midbrain" = "#AC93AD", 
+                                           "Hindbrain" = "#6E8B8E",
+                                          "Brain fragment" = "#FFA6B7", 
+                                          "Forebrain and midbrain")) +
+  facet_grid(Dataset~gene_name, scales = "free") + 
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 90)) + ylim(-3, 6)
   
-  #scale_fill_manual(values= c("Cerebellum" = "#FFD256",
-   #                                        "Subcortex" = "#838DE0",
-    #                                       "Cortex" = "#E85571", 
-     #                                      "Spinal cord" = "#C6D14A", 
-      #                                     "Forebrain", 
-       #                                    "Midbrain", 
-        #                                   "Hindbrain")) +
-  facet_wrap(gene_name~Dataset, scales = "free", nrow = 2) + ylim(-6,6)
-  theme(legend.position = "none")
   
-  
+ggsave(plot = plot, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/example1.svg", 
+       units = "in", 
+       width = 20, 
+       height =20)
 ```
 
 

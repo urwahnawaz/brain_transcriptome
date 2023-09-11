@@ -81,7 +81,7 @@ dir = file.path("/home/neuro/Documents/BrainData/Bulk/PsychEncode/")
 exp = list.files(dir, full.names = TRUE, pattern = "\\Gene_expression_matrix_TPM.txt") %>% 
       read.table(., header=TRUE, row.names = 1, check.names = FALSE)
 md = list.files(dir, full.names = TRUE, pattern = "Job*") %>% read.csv(., header=TRUE) %>% 
-  dplyr::filter(individualID == "2015-1")
+  dplyr::filter(individualID != "2015-1")
 comp = list.files(dir, full.names = TRUE, pattern = "\\Cell_fractions*") %>% read_excel() %>%
       as.data.frame() %>% 
       column_to_rownames("CellType")
@@ -125,8 +125,10 @@ md %<>%
       dplyr::select(-Age_rounded) %>%
       as.data.frame()
     
-    
-exp %<>% rownames_to_column("EnsemblID")
+exp = exp %>%
+  dplyr::select(contains(md$SampleID))
+exp = exp[colnames(exp) %in% md$SampleID,] 
+#exp %<>% column_to_rownames("EnsemblID")
   
 ```
 
@@ -137,4 +139,38 @@ write.csv(md, file = file.path(dir,"Formatted/PsychEncode-metadata.csv"))
 
 ```
 
+# Variance paritition
 
+```{r}
+pe.vP = read.csv("/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-varPart.csv", header=TRUE, 
+                 row.names = 1)
+
+var.genes.pe = plotVarPart(pe.vP)
+
+ggsave(var.genes.pe, 
+       filename = "/home/neuro/Documents/Brain_integrative_transcriptome/Results/Thesis_plots/varPart_pe.svg",
+       height = 6, 
+       width = 8, 
+       units = "in")
+```
+
+
+```{r}
+pe.form <- ~ (1|Sex) + (1|Diagnosis) + AgeNumeric + (1|Ethnicity) + (1|Period) 
+C.pe = canCorPairs(pe.form, md)
+plotCorrMatrix(C.pe, margins = c(5, 5))
+
+
+```
+
+```{r}
+varPar.pe <- fitExtractVarPartModel(pe, pe.form, md)
+
+```
+
+# Deconvolution
+
+```{r}
+pe.decon = run_dtg(exp ,sigsBrain$MB) 
+write.csv(pe.decon, file = "/home/neuro/Documents/BrainData/Bulk/PsychEncode/Formatted/PsychEncode-decon.csv")
+```

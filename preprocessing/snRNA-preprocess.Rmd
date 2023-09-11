@@ -32,6 +32,9 @@ library(edgeR)
 library(purrr)
 require(forcats)
 source("/home/neuro/Documents/Brain_integrative_transcriptome/brain_transcriptome/preprocessing/snRNAseq-fun.R")
+library(plotly)
+library(tidyverse)
+library(sunburstR)
 ```
 
 # Background 
@@ -49,7 +52,7 @@ hca.md = read.csv("/home/neuro/Documents/BrainData/single-cell/hca/HCA-metadata_
 
 ```{r}
 hca.CT = hca.md %>% group_by(subclass, MajorCelltype) %>% 
-    summarise(n = n()) %>% 
+    dplyr::summarise(n = n()) %>% 
     as.data.frame() %>% 
     mutate(percentage = (n/ sum(n)) * 100) 
 
@@ -58,13 +61,41 @@ hca.CT$MajorCellType[hca.CT$MajorCelltype =="Astrocytes" | hca.CT$MajorCelltype 
 
 
 hca.CT$MajorCellType[hca.CT$MajorCelltype =="Vasculature"] <- c("Vasculature")
-hca.CT$MajorCellType[grepl("Excitatory", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Excitatory Neurons")
-hca.CT$MajorCellType[grepl("Inhibitory", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Inhibitory Neurons")
+hca.CT$MajorCellType[grepl("Neurons", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Neuron")
+#hca.CT$MajorCellType[grepl("Inhibitory", hca.CT$MajorCelltype, ignore.case = TRUE)] <- c("Inhibitory Neurons")
+hca.CT
+
+
+colors = c("#DA4C70", "#C5D148", "#878DC5")
+labels = c("Vasculature", "Glia","Neurons")
+
+hca.CT %>% 
+  mutate(path = ifelse(grepl("Neurons",MajorCelltype),
+                       paste0(MajorCellType,"-",MajorCelltype, "-", subclass), 
+                       paste0(MajorCellType,"-", subclass))) %>% 
+  dplyr::select(path, n) %>% 
+  sunburst(
+    colors =list(range = colors, domain = labels))
+
+
+
+fig = plot_ly(
+  hca.CT,
+  ids = ~MajorCellType, 
+  labels = ~subclass, 
+  parents = ~MajorCelltype, 
+  #values = ~n,
+  type = 'sunburst'
+)
+
 
 
 hca.CT %<>%
   add_row(subclass = "For number", MajorCelltype = "number", n = 0, percentage = 0, MajorCellType = "Glia")
 ```
+
+
+
 
 
 ```{r}
